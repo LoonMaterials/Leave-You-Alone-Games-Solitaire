@@ -7,7 +7,7 @@
   const STORAGE_KEY = "leave-you-alone-yukon-current-game";
   const THEME_KEY = "leave-me-alone-games-theme";
   const AUTO_FINISH_KEY = "leave-me-alone-games-auto-finish";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
 
   const els = {
     foundations: document.getElementById("foundations"),

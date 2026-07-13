@@ -9,6 +9,7 @@ const files = [
   "launcher.css",
   "launcher.js",
   "i18n.js",
+  "help-i18n.js",
   "manifest.webmanifest",
   "sw.js",
 ];

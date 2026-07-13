@@ -1,4 +1,4 @@
-# iOS and Android Store Prep
+# iOS Store Prep
 
 This project is currently a static web/PWA version of the app. It is ready for browser play and home-screen installation, but native store release requires platform packaging.
 
@@ -36,7 +36,7 @@ Needs before store submission:
 - Hosted privacy policy URL
 - Age rating answers
 - Real-device test pass
-- Final native iOS or Android wrapper testing/signing
+- Final native iOS wrapper testing/signing
 
 ## iOS Path
 
@@ -70,26 +70,6 @@ Apple requirement to account for:
 
 - Check the current Xcode and SDK requirement before uploading to App Store Connect.
 
-## Android Path
-
-Recommended Android route:
-
-- Trusted Web Activity if publishing the hosted PWA
-- Native WebView wrapper if bundling the files locally
-- Android App Bundle (`.aab`) for Google Play
-- Check the current target API requirement before uploading to Google Play
-
-Trusted Web Activity needs:
-
-- Hosted HTTPS PWA
-- Valid manifest
-- App icons
-- Digital Asset Links file at `/.well-known/assetlinks.json`
-- Android package name
-- Signing certificate fingerprint
-
-Those last two values come from the Android project/signing key and cannot be filled in correctly until that project exists.
-
 ## Recommended Next Milestones
 
 1. Confirm the GitHub Pages version is stable.
@@ -97,11 +77,7 @@ Those last two values come from the Android project/signing key and cannot be fi
 3. Create final app icon artwork.
 4. Capture phone screenshots.
 5. Keep the Capacitor iOS wrapper synced with `npm run sync:ios`.
-6. Decide Android packaging path:
-   - Android: TWA or WebView wrapper
-7. Create store accounts:
+6. Create store accounts:
    - Apple Developer Program
-   - Google Play Console
-8. Run beta testing:
+7. Run beta testing:
    - TestFlight for iOS
-   - Internal testing track for Android

@@ -2,7 +2,7 @@
   "use strict";
   const STORAGE_KEY = "leave-me-alone-2048-current-game";
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const SIZE = 4;
   const els = { board: document.getElementById("board"), status: document.getElementById("status"), undo: document.getElementById("undo"), newGame: document.getElementById("new-game") };
   let state = null, undoSnapshot = null, touchStart = null, lastTapAt = 0;

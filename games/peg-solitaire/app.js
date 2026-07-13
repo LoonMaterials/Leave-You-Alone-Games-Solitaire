@@ -2,9 +2,9 @@
   "use strict";
 
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const KEY = "leave-me-alone-peg-solitaire-current-game";
-  const SAVE_VERSION = 3;
+  const SAVE_VERSION = 6;
   const LAYOUTS = [
     {
       id: "classic",
@@ -71,6 +71,110 @@
       ],
       goals: [{ row: 3, col: 3 }, { row: 1, col: 3 }, { row: 5, col: 3 }],
     },
+    {
+      id: "pyramid",
+      mask: [
+        [0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 1, col: 3 }, { row: 5, col: 3 }],
+    },
+    {
+      id: "castle",
+      mask: [
+        [1, 0, 1, 1, 1, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 1, 1, 1, 0, 1],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 2, col: 3 }, { row: 4, col: 3 }],
+    },
+    {
+      id: "arrow",
+      mask: [
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 0, 0, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+      ],
+      goals: [{ row: 0, col: 3 }, { row: 3, col: 3 }, { row: 6, col: 3 }],
+    },
+    {
+      id: "butterfly",
+      mask: [
+        [1, 1, 0, 1, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 0, 1, 0, 1, 1],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 1, col: 3 }, { row: 5, col: 3 }],
+    },
+    {
+      id: "fortress",
+      mask: [
+        [1, 1, 1, 0, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 0, 1, 0, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 0, 1, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 0, 1, 1, 1],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 0, col: 4 }, { row: 6, col: 2 }],
+    },
+    {
+      id: "lantern",
+      mask: [
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 0, 1, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 0, 1, 0, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 0, col: 3 }, { row: 6, col: 3 }],
+    },
+    {
+      id: "windmill",
+      mask: [
+        [1, 1, 0, 1, 0, 1, 1],
+        [1, 1, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 1, 1],
+        [1, 1, 0, 1, 0, 1, 1],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 1, col: 3 }, { row: 5, col: 3 }],
+    },
+    {
+      id: "diamond-wide",
+      mask: [
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 2, col: 3 }, { row: 4, col: 3 }],
+    },
   ];
   const DIRECTIONS = [
     [-1, 0],
@@ -90,7 +194,8 @@
     try {
       const theme = localStorage.getItem(THEME_KEY);
       const selectedTheme = THEMES.has(theme) ? theme : "colorblind";
-      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange");
+      document.body.dataset.theme = selectedTheme;
+      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange", "theme-purple", "theme-red", "theme-sand", "theme-midnight", "theme-rose");
       if (selectedTheme !== "green") document.body.classList.add(`theme-${selectedTheme}`);
     } catch {}
   }
@@ -277,7 +382,7 @@
       for (let col = 0; col < 7; col += 1) {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = `peg-cell ${isValid(row, col) ? "" : "invalid"} ${sameCell(selected, row, col) ? "selected" : ""} ${legalTargets.has(`${row},${col}`) ? "legal" : ""}`;
+        button.className = `peg-cell ${isValid(row, col) ? "" : "invalid"} ${state.pegs[row][col] ? "has-peg" : ""} ${sameCell(selected, row, col) ? "selected" : ""} ${legalTargets.has(`${row},${col}`) ? "legal" : ""}`;
         button.setAttribute("aria-label", t("pegHole", { number: row * 7 + col + 1 }));
         button.disabled = !isValid(row, col);
         button.addEventListener("click", () => clickHole(row, col));

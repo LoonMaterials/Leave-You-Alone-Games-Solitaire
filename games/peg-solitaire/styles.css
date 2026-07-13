@@ -67,17 +67,25 @@ h1 {
 }
 
 button,
-.control-button {
-  border: 1px solid var(--button-border);
-  border-radius: 999px;
-  background: var(--button);
-  color: var(--ink);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+.control-button,
+.button-link {
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 8px;
+  background: rgba(12, 34, 27, 0.56);
+  color: white;
+  box-shadow: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font: inherit;
   font-weight: 800;
+  line-height: 1.1;
   padding: 0.55rem 0.78rem;
+  text-align: center;
   text-decoration: none;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 button:disabled {
@@ -180,6 +188,7 @@ button:disabled {
 }
 
 .peg-cell {
+  position: relative;
   width: clamp(2.15rem, 11vw, 3.55rem);
   height: clamp(2.15rem, 11vw, 3.55rem);
   min-width: 0;
@@ -191,11 +200,22 @@ button:disabled {
 }
 
 .peg {
+  display: block;
   width: 62%;
   height: 62%;
   border-radius: 999px;
   background: radial-gradient(circle at 34% 28%, #fff7b3, #e1a42f 54%, #8c5519);
   box-shadow: inset 0 -0.22rem 0 rgba(0, 0, 0, 0.17), 0 0.2rem 0.45rem rgba(0, 0, 0, 0.24);
+}
+
+.peg-cell.has-peg::before {
+  content: "";
+  position: absolute;
+  inset: 19%;
+  border-radius: 999px;
+  background: radial-gradient(circle at 34% 28%, #fff7b3, #e1a42f 54%, #8c5519);
+  box-shadow: inset 0 -0.22rem 0 rgba(0, 0, 0, 0.17), 0 0.2rem 0.45rem rgba(0, 0, 0, 0.24);
+  pointer-events: none;
 }
 
 .peg-cell.selected {
@@ -404,3 +424,26 @@ body.theme-colorblind {
   box-sizing: border-box;
   min-height: 40px;
 }
+
+/* Shared topbar alignment pass */
+.topbar button,
+.topbar .button-link,
+.topbar .control-button,
+.actions button,
+.actions .button-link,
+.controls button,
+.controls .control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+/* Shared expanded background palette */
+body[data-theme="purple"], body.theme-purple { --felt: #66518f; --felt-dark: #302246; }
+body[data-theme="red"], body.theme-red { --felt: #8b3a3a; --felt-dark: #471b21; }
+body[data-theme="sand"], body.theme-sand { --felt: #8b734d; --felt-dark: #49361f; }
+body[data-theme="midnight"], body.theme-midnight { --felt: #1d324f; --felt-dark: #0d1424; }
+body[data-theme="rose"], body.theme-rose { --felt: #8f4f68; --felt-dark: #472333; }

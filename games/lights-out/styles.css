@@ -12,7 +12,7 @@ button:disabled { opacity:.45; }
 .topbar { width:min(100%, 620px); margin:0 auto; }
 .actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; flex-wrap:wrap; }
 .status { min-width:7rem; margin-right:auto; color:var(--muted); font-weight:900; }
-.board { width:min(92vw, 92dvh, 520px); aspect-ratio:1; margin:auto; border-radius:18px; background:rgba(18,31,26,.38); border:1px solid rgba(255,255,255,.2); box-shadow:0 18px 36px rgba(0,0,0,.24); padding:clamp(8px,2vw,14px); display:grid; grid-template-columns:repeat(5,1fr); gap:clamp(7px,1.7vw,12px); }
+.board { width:min(92vw, 92dvh, 520px); aspect-ratio:1; margin:auto; border-radius:18px; background:rgba(18,31,26,.38); border:1px solid rgba(255,255,255,.2); box-shadow:0 18px 36px rgba(0,0,0,.24); padding:clamp(8px,2vw,14px); display:grid; grid-template-columns:repeat(var(--lights-size, 5),1fr); gap:clamp(7px,1.7vw,12px); }
 .light { border-radius:18px; border:1px solid rgba(255,255,255,.16); background:linear-gradient(180deg, rgba(255,255,255,.08), transparent), var(--off); box-shadow:inset 0 2px 0 rgba(255,255,255,.08), 0 5px 12px rgba(0,0,0,.22); }
 .light.on { background:radial-gradient(circle at 34% 28%, var(--lit-edge), var(--lit) 48%, #c4871d); box-shadow:0 0 18px rgba(255,230,109,.42), inset 0 -5px 12px rgba(97,48,5,.22); }
 @media (max-width: 520px) { .actions { justify-content:center; } .status { width:100%; margin-right:0; text-align:center; } }
@@ -85,4 +85,26 @@ body.theme-colorblind {
 .setting-row {
   box-sizing: border-box;
   min-height: 40px;
+}
+/* Shared expanded background palette */
+body[data-theme="purple"], body.theme-purple { --felt: #66518f; --felt-dark: #302246; }
+body[data-theme="red"], body.theme-red { --felt: #8b3a3a; --felt-dark: #471b21; }
+body[data-theme="sand"], body.theme-sand { --felt: #8b734d; --felt-dark: #49361f; }
+body[data-theme="midnight"], body.theme-midnight { --felt: #1d324f; --felt-dark: #0d1424; }
+body[data-theme="rose"], body.theme-rose { --felt: #8f4f68; --felt-dark: #472333; }
+/* Shared topbar alignment pass */
+.topbar button,
+.topbar .button-link,
+.topbar .control-button,
+.actions button,
+.actions .button-link,
+.controls button,
+.controls .control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  vertical-align: middle;
+  white-space: nowrap;
 }

@@ -10,7 +10,7 @@
     <title>Leave Me Alone Games</title>
     <link rel="manifest" href="manifest.webmanifest?v=20260607-app-1">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <link rel="stylesheet" href="launcher.css?v=20260630-launcher-centered-1">
+    <link rel="stylesheet" href="launcher.css?v=20260713-final-polish-1">
   </head>
   <body>
     <main class="app-shell">
@@ -26,6 +26,11 @@
               <option value="blue" data-i18n="blue">Blue</option>
               <option value="grey" data-i18n="grey">Grey</option>
               <option value="orange" data-i18n="orange">Orange</option>
+              <option value="purple" data-i18n="purple">Purple</option>
+              <option value="red" data-i18n="red">Red</option>
+              <option value="sand" data-i18n="sand">Sand</option>
+              <option value="midnight" data-i18n="midnight">Midnight</option>
+              <option value="rose" data-i18n="rose">Rose</option>
             </select>
           </label>
           <label class="language-control" for="language-select">
@@ -36,14 +41,47 @@
               <option value="de">Deutsch</option>
               <option value="fr">Français</option>
               <option value="zh">中文</option>
+              <option value="pt">Português</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="it">Italiano</option>
+              <option value="nl">Nederlands</option>
             </select>
           </label>
           <label class="auto-finish-control" for="auto-finish-toggle">
             <input id="auto-finish-toggle" type="checkbox" checked>
             <span data-i18n="autoFinish">Auto Finish</span>
           </label>
+          <button id="reset-app-data" class="reset-data-button" type="button" data-i18n="resetAppData">Reset App Data</button>
         </div>
       </header>
+
+      <section class="quick-section" aria-labelledby="quick-play-heading">
+        <div class="section-heading">
+          <h2 id="quick-play-heading" data-i18n="quickPlay">Quick Play</h2>
+          <p data-i18n="quickPlayMeta">Resume, pick a favorite, or try today’s quiet game.</p>
+        </div>
+        <div class="quick-grid">
+          <a id="continue-card" class="quick-card disabled" href="#" aria-disabled="true">
+            <span class="game-badge" data-i18n="resume">Resume</span>
+            <span class="game-title" data-i18n="continueLastGame">Continue Last Game</span>
+            <span id="continue-label" class="game-meta" data-i18n="noRecentGame">No recent game yet</span>
+          </a>
+          <a id="daily-card" class="quick-card" href="#">
+            <span class="game-badge" data-i18n="daily">Daily</span>
+            <span class="game-title" data-i18n="dailyRandom">Daily Random</span>
+            <span id="daily-label" class="game-meta" data-i18n="dailyRandomMeta">One local pick for today</span>
+          </a>
+        </div>
+      </section>
+
+      <section id="favorites-section" class="game-section favorites-section" aria-labelledby="favorites-heading" hidden>
+        <div class="section-heading">
+          <h2 id="favorites-heading" data-i18n="favorites">Favorites</h2>
+          <p data-i18n="favoritesMeta">Your saved games stay on this device.</p>
+        </div>
+        <div id="favorites-grid" class="game-grid" aria-label="Favorite games" data-i18n-aria="favorites"></div>
+      </section>
 
       <section class="game-section" aria-labelledby="card-games-heading">
         <div class="section-heading">
@@ -121,11 +159,6 @@
             <span class="game-meta" data-i18n="reversiMeta">Computer or 2 players · same device</span>
           </a>
 
-          <a class="game-card" href="games/backgammon/index.html">
-            <span class="game-title" data-i18n="backgammonTitle">Backgammon Race</span>
-            <span class="game-meta" data-i18n="backgammonMeta">Computer or 2 players · same device</span>
-          </a>
-
           <a class="game-card" href="games/backgammon-classic/index.html">
             <span class="game-title" data-i18n="classicBackgammonTitle">Backgammon</span>
             <span class="game-meta" data-i18n="classicBackgammonMeta">Computer or 2 players · same device</span>
@@ -139,6 +172,30 @@
           <a class="game-card" href="games/tic-tac-toe/index.html">
             <span class="game-title" data-i18n="ticTacToeTitle">Tic-Tac-Toe</span>
             <span class="game-meta" data-i18n="ticTacToeMeta">Computer or 2 players · same device</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="game-section" aria-labelledby="dice-games-heading">
+        <div class="section-heading">
+          <h2 id="dice-games-heading" data-i18n="diceGames">Dice Games</h2>
+          <p data-i18n="diceGamesMeta">Random-number dice games for computer or 2 players on one device.</p>
+        </div>
+
+        <div class="game-grid" aria-label="Dice games" data-i18n-aria="diceGames">
+          <a class="game-card" href="games/yacht/index.html">
+            <span class="game-title" data-i18n="yachtTitle">Yacht</span>
+            <span class="game-meta" data-i18n="yachtMeta">Computer or 2 players · same device</span>
+          </a>
+
+          <a class="game-card" href="games/farkle/index.html">
+            <span class="game-title" data-i18n="farkleTitle">Farkle</span>
+            <span class="game-meta" data-i18n="farkleMeta">Computer or 2 players · same device</span>
+          </a>
+
+          <a class="game-card" href="games/shut-the-box/index.html">
+            <span class="game-title" data-i18n="shutTheBoxTitle">Shut the Box</span>
+            <span class="game-meta" data-i18n="shutTheBoxMeta">Computer or 2 players · same device</span>
           </a>
         </div>
       </section>
@@ -188,8 +245,17 @@
       </section>
     </main>
 
+    <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-title">
+      <div class="help-card">
+        <h2 id="help-title">How to Play</h2>
+        <div id="help-body" class="help-body"></div>
+        <button id="help-close" type="button" data-i18n="close">Close</button>
+      </div>
+    </dialog>
+
     <span hidden data-i18n-title="appTitle"></span>
-    <script src="i18n.js?v=20260630-same-device-1"></script>
-    <script src="launcher.js?v=20260629-colorblind-1"></script>
+    <script src="i18n.js?v=20260713-help-i18n-1"></script>
+    <script src="help-i18n.js?v=20260713-help-i18n-1"></script>
+    <script src="launcher.js?v=20260713-help-i18n-1"></script>
   </body>
 </html>

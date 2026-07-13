@@ -7,7 +7,7 @@
   const STORAGE_KEY = "leave-you-alone-spider-current-game";
   const THEME_KEY = "leave-me-alone-games-theme";
   const MODE_KEY = "leave-me-alone-spider-suit-mode";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const MODES = new Set(["one", "two", "four"]);
 
   const els = {

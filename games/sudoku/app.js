@@ -2,14 +2,21 @@
   "use strict";
 
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const KEY = "leave-me-alone-sudoku-current-game";
-  const SAVE_VERSION = 2;
+  const DIFFICULTY_KEY = "leave-me-alone-sudoku-difficulty";
+  const SAVE_VERSION = 4;
   const SIZE = 9;
   const BOX = 3;
+  const DIFFICULTIES = {
+    easy: { min: 40, max: 45 },
+    medium: { min: 30, max: 34 },
+    hard: { min: 24, max: 28 }
+  };
   const board = document.getElementById("game-board");
   const status = document.getElementById("status");
   const undoButton = document.getElementById("undo-button");
+  const difficultySelect = document.getElementById("difficulty-select");
   const t = (key, values) => window.LMAG_I18N ? window.LMAG_I18N.t(key, values) : key;
   let undoStack = [];
   let state;
@@ -18,7 +25,8 @@
     try {
       const theme = localStorage.getItem(THEME_KEY);
       const selectedTheme = THEMES.has(theme) ? theme : "colorblind";
-      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange");
+      document.body.dataset.theme = selectedTheme;
+      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange", "theme-purple", "theme-red", "theme-sand", "theme-midnight", "theme-rose");
       if (selectedTheme !== "green") document.body.classList.add(`theme-${selectedTheme}`);
     } catch {}
   }
@@ -47,25 +55,116 @@
     return rows.map((row) => cols.map((col) => numbers[pattern(row, col)]));
   }
 
-  function makePuzzle(solution) {
+  function allowedValues(values, row, col) {
+    const used = new Set();
+    for (let index = 0; index < SIZE; index += 1) {
+      if (values[row][index]) used.add(values[row][index]);
+      if (values[index][col]) used.add(values[index][col]);
+    }
+    const startRow = Math.floor(row / BOX) * BOX;
+    const startCol = Math.floor(col / BOX) * BOX;
+    for (let r = startRow; r < startRow + BOX; r += 1) {
+      for (let c = startCol; c < startCol + BOX; c += 1) {
+        if (values[r][c]) used.add(values[r][c]);
+      }
+    }
+    return shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9].filter((value) => !used.has(value)));
+  }
+
+  function countSolutions(values, limit = 2) {
+    const grid = values.map((row) => row.slice());
+    let count = 0;
+
+    function findCell() {
+      let best = null;
+      let bestChoices = null;
+      for (let row = 0; row < SIZE; row += 1) {
+        for (let col = 0; col < SIZE; col += 1) {
+          if (grid[row][col]) continue;
+          const choices = allowedValues(grid, row, col);
+          if (!choices.length) return { row, col, choices };
+          if (!bestChoices || choices.length < bestChoices.length) {
+            best = { row, col };
+            bestChoices = choices;
+          }
+        }
+      }
+      return best ? { ...best, choices: bestChoices } : null;
+    }
+
+    function solve() {
+      if (count >= limit) return;
+      const cell = findCell();
+      if (!cell) {
+        count += 1;
+        return;
+      }
+      if (!cell.choices.length) return;
+      cell.choices.forEach((value) => {
+        grid[cell.row][cell.col] = value;
+        solve();
+        grid[cell.row][cell.col] = 0;
+      });
+    }
+
+    solve();
+    return count;
+  }
+
+  function storedDifficulty() {
+    try {
+      const difficulty = localStorage.getItem(DIFFICULTY_KEY);
+      return DIFFICULTIES[difficulty] ? difficulty : "medium";
+    } catch {
+      return "medium";
+    }
+  }
+
+  function setStoredDifficulty(difficulty) {
+    const next = DIFFICULTIES[difficulty] ? difficulty : "medium";
+    try {
+      localStorage.setItem(DIFFICULTY_KEY, next);
+    } catch {}
+    return next;
+  }
+
+  function makePuzzle(solution, difficulty = storedDifficulty()) {
     const values = solution.map((row) => row.slice());
     const fixed = Array.from({ length: SIZE }, () => Array(SIZE).fill(1));
-    const holes = shuffle(Array.from({ length: SIZE * SIZE }, (_, index) => index));
-    const targetHoles = 44 + Math.floor(Math.random() * 6);
-    holes.slice(0, targetHoles).forEach((index) => {
+    const holes = shuffle(Array.from({ length: Math.ceil(SIZE * SIZE / 2) }, (_, index) => index));
+    const range = DIFFICULTIES[difficulty] || DIFFICULTIES.medium;
+    const targetGivens = range.min + Math.floor(Math.random() * (range.max - range.min + 1));
+    holes.forEach((index) => {
+      if (values.flat().filter(Boolean).length <= targetGivens) return;
       const row = Math.floor(index / SIZE);
       const col = index % SIZE;
-      values[row][col] = 0;
-      fixed[row][col] = 0;
+      const pairRow = SIZE - 1 - row;
+      const pairCol = SIZE - 1 - col;
+      const removed = [[row, col], [pairRow, pairCol]]
+        .filter(([r, c], i, cells) => values[r][c] && cells.findIndex(([er, ec]) => er === r && ec === c) === i)
+        .map(([r, c]) => [r, c, values[r][c]]);
+      if (!removed.length) return;
+      removed.forEach(([r, c]) => {
+        values[r][c] = 0;
+        fixed[r][c] = 0;
+      });
+      if (countSolutions(values) !== 1) {
+        removed.forEach(([r, c, value]) => {
+          values[r][c] = value;
+          fixed[r][c] = 1;
+        });
+      }
     });
     return { values, fixed };
   }
 
   function fresh() {
+    const difficulty = setStoredDifficulty(difficultySelect?.value || storedDifficulty());
     const solution = makeSolution();
-    const puzzle = makePuzzle(solution);
+    const puzzle = makePuzzle(solution, difficulty);
     return {
       version: SAVE_VERSION,
+      difficulty,
       values: puzzle.values,
       fixed: puzzle.fixed,
       solution
@@ -84,6 +183,7 @@
 
   function isValidSaved(saved) {
     return saved?.version === SAVE_VERSION &&
+      DIFFICULTIES[saved.difficulty] &&
       Array.isArray(saved.values) && saved.values.length === SIZE &&
       Array.isArray(saved.fixed) && saved.fixed.length === SIZE &&
       Array.isArray(saved.solution) && saved.solution.length === SIZE;
@@ -120,6 +220,7 @@
   }
 
   function render() {
+    if (difficultySelect) difficultySelect.value = state.difficulty || storedDifficulty();
     board.textContent = "";
     board.className = "board sudoku-grid";
     state.values.forEach((row, r) => row.forEach((value, c) => {
@@ -174,6 +275,13 @@
   }
 
   applyTheme();
+  if (difficultySelect) {
+    difficultySelect.value = storedDifficulty();
+    difficultySelect.addEventListener("change", () => {
+      setStoredDifficulty(difficultySelect.value);
+      newGame();
+    });
+  }
   state = load();
   save();
   document.getElementById("check-button").addEventListener("click", check);

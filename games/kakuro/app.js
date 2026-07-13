@@ -2,7 +2,7 @@
   "use strict";
 
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const KEY = "leave-me-alone-kakuro-current-game";
   const SAVE_VERSION = 3;
   const board = document.getElementById("game-board");

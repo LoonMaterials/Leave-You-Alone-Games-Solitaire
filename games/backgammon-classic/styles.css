@@ -73,3 +73,25 @@ button:disabled { opacity:.45; }
   box-sizing: border-box;
   min-height: 40px;
 }
+/* Shared expanded background palette */
+body[data-theme="purple"], body.theme-purple { --felt: #66518f; --felt-dark: #302246; }
+body[data-theme="red"], body.theme-red { --felt: #8b3a3a; --felt-dark: #471b21; }
+body[data-theme="sand"], body.theme-sand { --felt: #8b734d; --felt-dark: #49361f; }
+body[data-theme="midnight"], body.theme-midnight { --felt: #1d324f; --felt-dark: #0d1424; }
+body[data-theme="rose"], body.theme-rose { --felt: #8f4f68; --felt-dark: #472333; }
+/* Shared topbar alignment pass */
+.topbar button,
+.topbar .button-link,
+.topbar .control-button,
+.actions button,
+.actions .button-link,
+.controls button,
+.controls .control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  vertical-align: middle;
+  white-space: nowrap;
+}

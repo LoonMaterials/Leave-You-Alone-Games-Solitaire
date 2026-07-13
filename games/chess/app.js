@@ -6,8 +6,8 @@
   const MODE_KEY = "leave-me-alone-chess-mode";
   const THEME_KEY = "leave-me-alone-games-theme";
   const SAVE_VERSION = 2;
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
-  const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
+  const DIFFICULTIES = new Set(["easy", "medium", "hard", "grandmaster"]);
   const MODES = new Set(["computer", "two-player"]);
   const VALUES = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 20000 };
   const PIECE_SQUARES = {
@@ -428,16 +428,68 @@
     if (position.winner === "w") return -999999;
     if (position.draw) return 0;
     let score = 0;
+    const bishops = { w: 0, b: 0 };
+    const pawnsByFile = { w: Array(8).fill(0), b: Array(8).fill(0) };
+    const rooks = [];
+    const kings = { w: null, b: null };
     for (let row = 0; row < 8; row += 1) {
       for (let col = 0; col < 8; col += 1) {
         const piece = position.board[row][col];
         if (!piece) continue;
         const color = colorOf(piece);
         const type = typeOf(piece);
+        if (type === "B") bishops[color] += 1;
+        if (type === "P") pawnsByFile[color][col] += 1;
+        if (type === "R") rooks.push({ color, col });
+        if (type === "K") kings[color] = { row, col };
         const tableRow = color === "w" ? row : 7 - row;
         const value = VALUES[type] + (PIECE_SQUARES[type]?.[tableRow]?.[col] || 0);
         score += color === "b" ? value : -value;
       }
+    }
+    if (bishops.b >= 2) score += 35;
+    if (bishops.w >= 2) score -= 35;
+    for (let file = 0; file < 8; file += 1) {
+      if (pawnsByFile.b[file] > 1) score -= 18 * (pawnsByFile.b[file] - 1);
+      if (pawnsByFile.w[file] > 1) score += 18 * (pawnsByFile.w[file] - 1);
+      if (pawnsByFile.b[file] && !pawnsByFile.b[file - 1] && !pawnsByFile.b[file + 1]) score -= 12;
+      if (pawnsByFile.w[file] && !pawnsByFile.w[file - 1] && !pawnsByFile.w[file + 1]) score += 12;
+    }
+    for (let row = 0; row < 8; row += 1) {
+      for (let col = 0; col < 8; col += 1) {
+        const piece = position.board[row][col];
+        if (typeOf(piece) !== "P") continue;
+        const color = colorOf(piece);
+        const enemy = other(color);
+        let passed = true;
+        for (let file = Math.max(0, col - 1); file <= Math.min(7, col + 1); file += 1) {
+          const start = color === "b" ? row + 1 : row - 1;
+          const end = color === "b" ? 7 : 0;
+          for (let checkRow = start; color === "b" ? checkRow <= end : checkRow >= end; checkRow += color === "b" ? 1 : -1) {
+            if (position.board[checkRow]?.[file] === `${enemy}P`) passed = false;
+          }
+        }
+        if (passed) {
+          const progress = color === "b" ? row : 7 - row;
+          score += color === "b" ? 18 + progress * 9 : -(18 + progress * 9);
+        }
+      }
+    }
+    rooks.forEach((rook) => {
+      if (!pawnsByFile.w[rook.col] && !pawnsByFile.b[rook.col]) score += rook.color === "b" ? 20 : -20;
+      else if (!pawnsByFile[rook.color][rook.col]) score += rook.color === "b" ? 10 : -10;
+    });
+    for (const color of ["w", "b"]) {
+      const king = kings[color];
+      if (!king) continue;
+      let shield = 0;
+      const pawnRow = color === "w" ? king.row - 1 : king.row + 1;
+      for (let col = Math.max(0, king.col - 1); col <= Math.min(7, king.col + 1); col += 1) {
+        if (position.board[pawnRow]?.[col] === `${color}P`) shield += 1;
+      }
+      score += color === "b" ? shield * 8 : -shield * 8;
+      const castled = color === "w" ? king.row === 7 && (king.col === 6 || king.col === 2) : king.row === 0 && (king.col === 6 || king.col === 2);
+      if (castled) score += color === "b" ? 24 : -24;
     }
     const sideMoves = allLegalMoves(position, position.turn).length;
     score += position.turn === "b" ? sideMoves * 2 : -sideMoves * 2;
@@ -459,9 +511,57 @@
     return score;
   }
 
-  function minimax(position, depth, alpha, beta) {
+  function boardKey(position, depth, phase) {
+    return `${phase}|${depth}|${position.turn}|${position.castling.wK ? 1 : 0}${position.castling.wQ ? 1 : 0}${position.castling.bK ? 1 : 0}${position.castling.bQ ? 1 : 0}|${position.enPassant ? `${position.enPassant.row},${position.enPassant.col}` : "-"}|${position.board.map((row) => row.map((piece) => piece || "--").join("")).join("/")}`;
+  }
+
+  function quiescence(position, alpha, beta, depth, cache) {
     updateGameStatus(position);
-    if (depth <= 0 || position.winner || position.draw) return evaluate(position);
+    const key = boardKey(position, depth, "q");
+    if (cache.has(key)) return cache.get(key);
+    const standPat = evaluate(position);
+    if (position.winner || position.draw || depth <= 0) {
+      cache.set(key, standPat);
+      return standPat;
+    }
+    const maximizing = position.turn === "b";
+    if (maximizing) {
+      if (standPat >= beta) return beta;
+      alpha = Math.max(alpha, standPat);
+    } else {
+      if (standPat <= alpha) return alpha;
+      beta = Math.min(beta, standPat);
+    }
+    const tacticalMoves = orderedMoves(position, allLegalMoves(position, position.turn))
+      .filter((move) => move.capture || move.enPassant || move.promotion);
+    if (!tacticalMoves.length) {
+      cache.set(key, standPat);
+      return standPat;
+    }
+    let best = standPat;
+    for (const move of tacticalMoves) {
+      const next = clone(position);
+      applyMove(next, clone(move));
+      const score = quiescence(next, alpha, beta, depth - 1, cache);
+      if (maximizing) {
+        best = Math.max(best, score);
+        alpha = Math.max(alpha, best);
+      } else {
+        best = Math.min(best, score);
+        beta = Math.min(beta, best);
+      }
+      if (beta <= alpha) break;
+    }
+    cache.set(key, best);
+    return best;
+  }
+
+  function minimax(position, depth, alpha, beta, cache) {
+    updateGameStatus(position);
+    if (position.winner || position.draw) return evaluate(position);
+    if (depth <= 0) return quiescence(position, alpha, beta, 3, cache);
+    const key = boardKey(position, depth, "m");
+    if (cache.has(key)) return cache.get(key);
     const maximizing = position.turn === "b";
     const moves = orderedMoves(position, allLegalMoves(position, position.turn));
     if (!moves.length) return evaluate(position);
@@ -470,20 +570,22 @@
       for (const move of moves) {
         const next = clone(position);
         applyMove(next, clone(move));
-        best = Math.max(best, minimax(next, depth - 1, alpha, beta));
+        best = Math.max(best, minimax(next, depth - 1, alpha, beta, cache));
         alpha = Math.max(alpha, best);
         if (beta <= alpha) break;
       }
+      cache.set(key, best);
       return best;
     }
     let best = Infinity;
     for (const move of moves) {
       const next = clone(position);
       applyMove(next, clone(move));
-      best = Math.min(best, minimax(next, depth - 1, alpha, beta));
+      best = Math.min(best, minimax(next, depth - 1, alpha, beta, cache));
       beta = Math.min(beta, best);
       if (beta <= alpha) break;
     }
+    cache.set(key, best);
     return best;
   }
 
@@ -494,15 +596,16 @@
       const pool = captures.length && Math.random() < 0.65 ? captures : moves;
       return pool[Math.floor(Math.random() * pool.length)];
     }
-    const depth = difficulty === "hard" ? 3 : 2;
-    const jitter = difficulty === "hard" ? 4 : 22;
+    const depth = difficulty === "grandmaster" ? 4 : difficulty === "hard" ? 3 : 2;
+    const jitter = difficulty === "grandmaster" ? 0 : difficulty === "hard" ? 4 : 22;
+    const cache = new Map();
     const scored = orderedMoves(state, moves).map((move) => {
       const next = clone(state);
       applyMove(next, clone(move));
-      return { move, score: minimax(next, depth - 1, -Infinity, Infinity) + (Math.random() * jitter) };
+      return { move, score: minimax(next, depth - 1, -Infinity, Infinity, cache) + (Math.random() * jitter) };
     }).sort((a, b) => b.score - a.score);
     const best = scored[0].score;
-    const nearBest = scored.filter((item) => best - item.score <= (difficulty === "hard" ? 8 : 35));
+    const nearBest = scored.filter((item) => best - item.score <= (difficulty === "grandmaster" ? 0 : difficulty === "hard" ? 8 : 35));
     return nearBest[Math.floor(Math.random() * nearBest.length)].move;
   }
 
@@ -572,7 +675,10 @@
       selected = null;
       legalTargets = [];
       render();
-      if (!isTwoPlayer() && !state.winner && !state.draw) window.setTimeout(computerMove, storedDifficulty() === "hard" ? 180 : 120);
+      if (!isTwoPlayer() && !state.winner && !state.draw) {
+        const difficulty = storedDifficulty();
+        window.setTimeout(computerMove, difficulty === "grandmaster" ? 260 : difficulty === "hard" ? 180 : 120);
+      }
       return;
     }
     if (colorOf(state.board[row][col]) === state.turn) {

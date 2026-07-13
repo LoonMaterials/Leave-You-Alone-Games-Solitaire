@@ -66,6 +66,27 @@ h1 {
   justify-content: flex-end;
 }
 
+.difficulty-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: white;
+  font-weight: 850;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.34);
+}
+
+.difficulty-control select {
+  min-height: 40px;
+  max-width: 10.5rem;
+  border: 1px solid var(--button-border);
+  border-radius: 999px;
+  background: var(--button);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  padding: 0.45rem 0.62rem;
+}
+
 button,
 .control-button {
   border: 1px solid var(--button-border);
@@ -132,7 +153,7 @@ button:disabled {
   min-height: 0;
   margin: 0 auto;
   padding: clamp(0.45rem, 2vw, 0.85rem);
-  border: 3px solid rgba(23, 32, 24, 0.72);
+  border: 5px solid rgba(23, 32, 24, 0.95);
   border-radius: 0.9rem;
   overflow: hidden;
 }
@@ -166,18 +187,24 @@ button:disabled {
   min-width: 0;
   min-height: 0;
   border-radius: 0;
-  border-color: rgba(23, 32, 24, 0.26);
+  border-color: rgba(23, 32, 24, 0.3);
   font-size: clamp(1rem, 4.4vw, 1.42rem);
 }
 
 .sudoku-cell.box-right {
-  border-right-width: 3px;
-  border-right-color: rgba(23, 32, 24, 0.72);
+  border-right-width: 5px;
+  border-right-color: rgba(23, 32, 24, 0.96);
+  box-shadow: inset -3px 0 0 rgba(23, 32, 24, 0.82);
 }
 
 .sudoku-cell.box-bottom {
-  border-bottom-width: 3px;
-  border-bottom-color: rgba(23, 32, 24, 0.72);
+  border-bottom-width: 5px;
+  border-bottom-color: rgba(23, 32, 24, 0.96);
+  box-shadow: inset 0 -3px 0 rgba(23, 32, 24, 0.82);
+}
+
+.sudoku-cell.box-right.box-bottom {
+  box-shadow: inset -3px 0 0 rgba(23, 32, 24, 0.82), inset 0 -3px 0 rgba(23, 32, 24, 0.82);
 }
 
 .sudoku-cell.conflict {
@@ -377,6 +404,11 @@ button:disabled {
     justify-content: center;
   }
 
+  .difficulty-control {
+    justify-content: center;
+    width: 100%;
+  }
+
   .control-button {
     justify-self: center;
   }
@@ -450,4 +482,26 @@ body.theme-colorblind {
 .setting-row {
   box-sizing: border-box;
   min-height: 40px;
+}
+/* Shared expanded background palette */
+body[data-theme="purple"], body.theme-purple { --felt: #66518f; --felt-dark: #302246; }
+body[data-theme="red"], body.theme-red { --felt: #8b3a3a; --felt-dark: #471b21; }
+body[data-theme="sand"], body.theme-sand { --felt: #8b734d; --felt-dark: #49361f; }
+body[data-theme="midnight"], body.theme-midnight { --felt: #1d324f; --felt-dark: #0d1424; }
+body[data-theme="rose"], body.theme-rose { --felt: #8f4f68; --felt-dark: #472333; }
+/* Shared topbar alignment pass */
+.topbar button,
+.topbar .button-link,
+.topbar .control-button,
+.actions button,
+.actions .button-link,
+.controls button,
+.controls .control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  vertical-align: middle;
+  white-space: nowrap;
 }

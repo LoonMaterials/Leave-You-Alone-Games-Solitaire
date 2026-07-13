@@ -3,7 +3,7 @@
   const STORAGE_KEY = "leave-me-alone-tic-tac-toe-current-game";
   const MODE_KEY = "leave-me-alone-tic-tac-toe-mode";
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const WIN_LINES = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]];
   const MODES = new Set(["computer", "two-player"]);
   const els = { board: document.getElementById("board"), status: document.getElementById("status"), undo: document.getElementById("undo"), newGame: document.getElementById("new-game"), mode: document.getElementById("game-mode") };

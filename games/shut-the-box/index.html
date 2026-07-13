@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#2f6f58">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Shut the Box">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Shut the Box That Leaves You Alone</title>
+    <link rel="manifest" href="../../manifest.webmanifest?v=20260607-app-1">
+    <link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+    <link rel="stylesheet" href="styles.css?v=20260713-final-polish-1">
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="topbar">
+        <div class="actions">
+          <span id="status" class="status" aria-live="polite"></span>
+          <label class="difficulty-control"><span data-i18n="gameMode">Mode</span><select id="game-mode" data-i18n-aria="gameMode"><option value="computer" data-i18n="modeComputer">Vs Computer</option><option value="two-player" data-i18n="modeTwoPlayers">Two Players</option></select></label>
+          <label class="difficulty-control"><span data-i18n="difficulty">Difficulty</span><select id="difficulty" data-i18n-aria="difficulty"><option value="easy" data-i18n="difficultyEasy">Easy · relaxed</option><option value="medium" data-i18n="difficultyMedium">Medium · thinking</option><option value="hard" data-i18n="difficultyHard">Hard · challenging</option></select></label>
+          <a class="button-link" href="../../index.html" data-i18n="gameMenu">Main Menu</a>
+          <button id="undo" type="button" disabled data-i18n="undo">Undo</button>
+          <button id="new-game" type="button" data-i18n="newGame">New Game</button>
+        </div>
+      </header>
+      <section class="table" aria-label="Shut the Box board" data-i18n-aria="boardShutTheBox">
+        <div id="score" class="scoreline"></div>
+        <div id="dice" class="dice-row"></div>
+        <div id="turn-log" class="turn-log" aria-live="polite"></div>
+        <div class="turn-actions"><button id="roll" type="button" data-i18n="rollDice">Roll</button><button id="shut" type="button" data-i18n="shutTiles">Shut Tiles</button></div>
+        <div id="tiles" class="tiles"></div>
+      </section>
+    </main>
+    <span hidden data-i18n-title="shutTheBoxTitle"></span>
+    <script src="../../i18n.js?v=20260713-themes-1"></script>
+    <script src="app.js?v=20260713-final-polish-1"></script>
+  </body>
+</html>
