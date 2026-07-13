@@ -5,7 +5,7 @@
   const DIFFICULTY_KEY = "leave-me-alone-dominoes-difficulty";
   const MODE_KEY = "leave-me-alone-dominoes-mode";
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const MODES = new Set(["computer", "two-player"]);
   const MAX_PIPS = 9;

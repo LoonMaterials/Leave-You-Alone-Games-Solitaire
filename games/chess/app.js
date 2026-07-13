@@ -6,7 +6,7 @@
   const MODE_KEY = "leave-me-alone-chess-mode";
   const THEME_KEY = "leave-me-alone-games-theme";
   const SAVE_VERSION = 2;
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const DIFFICULTIES = new Set(["easy", "medium", "hard", "grandmaster"]);
   const MODES = new Set(["computer", "two-player"]);
   const VALUES = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 20000 };

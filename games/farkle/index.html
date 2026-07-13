@@ -10,7 +10,7 @@
     <title>Farkle That Leaves You Alone</title>
     <link rel="manifest" href="../../manifest.webmanifest?v=20260607-app-1">
     <link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=20260712-dice-1">
+    <link rel="stylesheet" href="styles.css?v=20260713-themes-1">
   </head>
   <body>
     <main class="game-shell">
@@ -27,6 +27,7 @@
       <section class="table" aria-label="Farkle board" data-i18n-aria="boardFarkle">
         <div id="score" class="scoreline"></div>
         <div id="turn-points" class="turn-points"></div>
+        <div id="turn-log" class="turn-log" aria-live="polite"></div>
         <div id="dice" class="dice-row"></div>
         <div class="turn-actions">
           <button id="roll" type="button" data-i18n="rollDice">Roll</button>
@@ -35,7 +36,7 @@
       </section>
     </main>
     <span hidden data-i18n-title="farkleTitle"></span>
-    <script src="../../i18n.js?v=20260712-replay-1"></script>
-    <script src="app.js?v=20260712-dice-1"></script>
+    <script src="../../i18n.js?v=20260713-themes-1"></script>
+    <script src="app.js?v=20260713-farkle-log-1"></script>
   </body>
 </html>

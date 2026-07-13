@@ -5,9 +5,9 @@
   const MODE_KEY = "leave-me-alone-farkle-mode";
   const DIFFICULTY_KEY = "leave-me-alone-farkle-difficulty";
   const THEME_KEY = "leave-me-alone-games-theme";
-  const SAVE_VERSION = 1;
+  const SAVE_VERSION = 2;
   const TARGET_SCORE = 5000;
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const MODES = new Set(["computer", "two-player"]);
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
 
@@ -16,6 +16,7 @@
     status: document.getElementById("status"),
     score: document.getElementById("score"),
     turnPoints: document.getElementById("turn-points"),
+    log: document.getElementById("turn-log"),
     roll: document.getElementById("roll"),
     bank: document.getElementById("bank"),
     undo: document.getElementById("undo"),
@@ -80,7 +81,8 @@
       turnPoints: 0,
       rolled: false,
       winner: null,
-      message: ""
+      message: "",
+      log: []
     };
   }
 
@@ -165,6 +167,10 @@
     return state.turn === "p1" ? t("player1") : t("computer");
   }
 
+  function addLog(message) {
+    state.log = [message, ...(state.log || [])].slice(0, 4);
+  }
+
   function setWinnerIfNeeded() {
     if (state.scores.p1 >= TARGET_SCORE || state.scores.p2 >= TARGET_SCORE) {
       state.winner = state.scores.p1 >= state.scores.p2 ? "p1" : "p2";
@@ -173,11 +179,13 @@
 
   function rollDice() {
     if (state.winner) return;
+    const actor = currentName();
     const selected = selectedScore();
     if (state.rolled && !selected.valid) return;
     rememberUndo();
     if (selected.valid) {
       state.turnPoints += selected.score;
+      addLog(t("farkleKept", { player: actor, points: selected.score }));
       const remaining = state.dice.filter((_, index) => !state.selected.includes(index));
       state.dice = remaining.length ? remaining.map(() => rollDie()) : Array.from({ length: 6 }, rollDie);
     } else {
@@ -185,8 +193,10 @@
     }
     state.selected = [];
     state.rolled = true;
+    addLog(t("farkleRolled", { player: actor, dice: state.dice.join(", ") }));
     if (!hasScoringMove(state.dice)) {
       state.message = t("farkle");
+      addLog(t("farkleFarkled", { player: actor }));
       state.turnPoints = 0;
       nextTurn();
     } else {
@@ -198,11 +208,13 @@
 
   function bankPoints() {
     if (state.winner) return;
+    const actor = currentName();
     const selected = selectedScore();
     const total = state.turnPoints + (selected.valid ? selected.score : 0);
     if (total <= 0) return;
     rememberUndo();
     state.scores[state.turn] += total;
+    addLog(t("farkleBanked", { player: actor, points: total }));
     setWinnerIfNeeded();
     state.message = "";
     if (!state.winner) nextTurn();
@@ -255,6 +267,7 @@
     const best = bestComputerSelection(state.dice);
     if (!best) {
       state.message = t("farkle");
+      addLog(t("farkleFarkled", { player: currentName() }));
       state.turnPoints = 0;
       nextTurn();
       render();
@@ -262,10 +275,12 @@
     }
     state.selected = best.indexes;
     state.turnPoints += best.score;
+    addLog(t("farkleKept", { player: currentName(), points: best.score }));
     const remaining = state.dice.filter((_, index) => !state.selected.includes(index));
     state.dice = remaining.length ? remaining : [];
     state.selected = [];
     if (computerShouldBank()) {
+      addLog(t("farkleBanked", { player: currentName(), points: state.turnPoints }));
       state.scores.p2 += state.turnPoints;
       setWinnerIfNeeded();
       if (!state.winner) nextTurn();
@@ -274,20 +289,22 @@
     }
     state.dice = remaining.length ? remaining.map(() => rollDie()) : Array.from({ length: 6 }, rollDie);
     state.rolled = true;
+    addLog(t("farkleRolled", { player: currentName(), dice: state.dice.join(", ") }));
     if (!hasScoringMove(state.dice)) {
       state.message = t("farkle");
+      addLog(t("farkleFarkled", { player: currentName() }));
       state.turnPoints = 0;
       nextTurn();
       render();
       return;
     }
     render();
-    window.setTimeout(computerStep, 300);
+    window.setTimeout(computerStep, 650);
   }
 
   function maybeComputerTurn() {
     if (!isTwoPlayer() && state.turn === "p2" && !state.winner) {
-      window.setTimeout(computerStep, 350);
+      window.setTimeout(computerStep, 650);
     }
   }
 
@@ -316,6 +333,14 @@
     els.status.textContent = statusText();
     els.score.textContent = `${t("player1")}: ${state.scores.p1} · ${isTwoPlayer() ? t("player2") : t("computer")}: ${state.scores.p2}`;
     els.turnPoints.textContent = `${t("turnPoints")}: ${state.turnPoints + (selected.valid ? selected.score : 0)} / ${TARGET_SCORE}`;
+    if (els.log) {
+      els.log.innerHTML = "";
+      (state.log || []).forEach((message) => {
+        const row = document.createElement("div");
+        row.textContent = message;
+        els.log.appendChild(row);
+      });
+    }
     els.roll.disabled = Boolean(state.winner) || (!isTwoPlayer() && state.turn === "p2") || (state.rolled && !selected.valid);
     els.bank.disabled = Boolean(state.winner) || (!isTwoPlayer() && state.turn === "p2") || state.turnPoints + (selected.valid ? selected.score : 0) <= 0;
     if (els.difficulty) els.difficulty.disabled = isTwoPlayer();

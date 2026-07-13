@@ -5,7 +5,7 @@
   const AUTO_FINISH_KEY = "leave-me-alone-games-auto-finish";
   const LAST_GAME_KEY = "leave-me-alone-games-last-game";
   const FAVORITES_KEY = "leave-me-alone-games-favorites";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const themeSelect = document.getElementById("theme-select");
   const autoFinishToggle = document.getElementById("auto-finish-toggle");
   const continueCard = document.getElementById("continue-card");

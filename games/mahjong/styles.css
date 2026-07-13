@@ -5,6 +5,8 @@
   --tile-edge: #6c4b20;
   --tile-side: #9c6b32;
   --tile-accent: #6c4b20;
+  --tile-edge-soft: #d8c7a3;
+  --tile-face-tint: #fbf0d7;
   --tile-ink: #182c25;
   --tile-shadow: rgba(8, 24, 19, 0.38);
   --text: #f6efe0;
@@ -150,7 +152,7 @@ button:disabled {
     calc(var(--layer-lift) * 1.06) calc(var(--layer-lift) * 1.06) 0 var(--tile-side),
     calc(var(--layer-lift) * 1.8) calc(var(--layer-lift) * 1.8) 0 rgba(60, 35, 12, 0.2),
     inset 0 0 0 2px rgba(255, 255, 255, 0.78),
-    inset 0 0 0 5px color-mix(in srgb, var(--tile-edge), white 68%),
+    inset 0 0 0 5px var(--tile-edge-soft),
     0 8px 16px var(--tile-shadow);
   cursor: pointer;
   display: grid;
@@ -191,7 +193,7 @@ button:disabled {
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.95), transparent 36%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.34)),
-    color-mix(in srgb, var(--tile-accent), white 88%);
+    var(--tile-face-tint);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.66);
   z-index: 1;
 }
@@ -829,4 +831,26 @@ body.theme-colorblind .tile .tile-mark {
 .setting-row {
   box-sizing: border-box;
   min-height: 40px;
+}
+/* Shared expanded background palette */
+body[data-theme="purple"], body.theme-purple { --felt: #66518f; --felt-dark: #302246; }
+body[data-theme="red"], body.theme-red { --felt: #8b3a3a; --felt-dark: #471b21; }
+body[data-theme="sand"], body.theme-sand { --felt: #8b734d; --felt-dark: #49361f; }
+body[data-theme="midnight"], body.theme-midnight { --felt: #1d324f; --felt-dark: #0d1424; }
+body[data-theme="rose"], body.theme-rose { --felt: #8f4f68; --felt-dark: #472333; }
+/* Shared topbar alignment pass */
+.topbar button,
+.topbar .button-link,
+.topbar .control-button,
+.actions button,
+.actions .button-link,
+.controls button,
+.controls .control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  vertical-align: middle;
+  white-space: nowrap;
 }

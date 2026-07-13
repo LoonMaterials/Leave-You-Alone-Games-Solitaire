@@ -6,7 +6,7 @@
   const RANK_LABELS = { 1: "A", 11: "J", 12: "Q", 13: "K" };
   const STORAGE_KEY = "leave-you-alone-tripeaks-current-game";
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const LAYOUT = [
     { row: 0, x: 1, children: [3, 4] },
     { row: 0, x: 7, children: [5, 6] },

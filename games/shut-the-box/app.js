@@ -6,7 +6,7 @@
   const DIFFICULTY_KEY = "leave-me-alone-shut-the-box-difficulty";
   const THEME_KEY = "leave-me-alone-games-theme";
   const SAVE_VERSION = 1;
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const MODES = new Set(["computer", "two-player"]);
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
 

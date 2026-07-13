@@ -4,7 +4,7 @@
   const STORAGE_KEY = "leave-me-alone-mahjong-current-game";
   const SAVE_VERSION = 4;
   const THEME_KEY = "leave-me-alone-games-theme";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
+  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const MIN_RANDOM_TILES = 56;
 
   const TILE_TYPES = [
