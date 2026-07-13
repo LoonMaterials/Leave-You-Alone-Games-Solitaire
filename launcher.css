@@ -121,43 +121,6 @@ body {
   font-size: 1rem;
 }
 
-.theme-choice-row {
-  width: min(100%, 560px);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 8px;
-}
-
-.theme-choice {
-  min-height: 40px;
-  border: 1px solid var(--panel-border);
-  border-radius: 10px;
-  color: var(--text);
-  background: rgba(12, 34, 27, 0.46);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 800;
-  text-align: center;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.theme-choice.selected {
-  border-color: rgba(255, 255, 255, 0.86);
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.28);
-}
-
-.theme-choice[data-theme-choice="colorblind"] { background: linear-gradient(135deg, #234f68, #172b3a); }
-.theme-choice[data-theme-choice="green"] { background: linear-gradient(135deg, #2f6f58, #204b3d); }
-.theme-choice[data-theme-choice="blue"] { background: linear-gradient(135deg, #2f5f7f, #193d56); }
-.theme-choice[data-theme-choice="grey"] { background: linear-gradient(135deg, #5f6867, #343d3c); }
-.theme-choice[data-theme-choice="orange"] { background: linear-gradient(135deg, #9a6330, #5d351c); }
-.theme-choice[data-theme-choice="purple"] { background: linear-gradient(135deg, #66518f, #302246); }
-.theme-choice[data-theme-choice="red"] { background: linear-gradient(135deg, #8b3a3a, #471b21); }
-.theme-choice[data-theme-choice="sand"] { background: linear-gradient(135deg, #8b734d, #49361f); }
-.theme-choice[data-theme-choice="midnight"] { background: linear-gradient(135deg, #1d324f, #0d1424); }
-.theme-choice[data-theme-choice="rose"] { background: linear-gradient(135deg, #8f4f68, #472333); }
-
 .auto-finish-control {
   min-height: 38px;
   border: 1px solid var(--panel-border);

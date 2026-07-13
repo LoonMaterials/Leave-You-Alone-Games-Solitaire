@@ -188,6 +188,7 @@ button:disabled {
 }
 
 .peg-cell {
+  position: relative;
   width: clamp(2.15rem, 11vw, 3.55rem);
   height: clamp(2.15rem, 11vw, 3.55rem);
   min-width: 0;
@@ -205,6 +206,16 @@ button:disabled {
   border-radius: 999px;
   background: radial-gradient(circle at 34% 28%, #fff7b3, #e1a42f 54%, #8c5519);
   box-shadow: inset 0 -0.22rem 0 rgba(0, 0, 0, 0.17), 0 0.2rem 0.45rem rgba(0, 0, 0, 0.24);
+}
+
+.peg-cell.has-peg::before {
+  content: "";
+  position: absolute;
+  inset: 19%;
+  border-radius: 999px;
+  background: radial-gradient(circle at 34% 28%, #fff7b3, #e1a42f 54%, #8c5519);
+  box-shadow: inset 0 -0.22rem 0 rgba(0, 0, 0, 0.17), 0 0.2rem 0.45rem rgba(0, 0, 0, 0.24);
+  pointer-events: none;
 }
 
 .peg-cell.selected {

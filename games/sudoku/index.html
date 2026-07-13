@@ -4,13 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
     <title>Sudoku</title>
-    <link rel="stylesheet" href="styles.css?v=20260713-puzzle-depth-1">
+    <link rel="stylesheet" href="styles.css?v=20260713-sudoku-levels-1">
   </head>
   <body data-game="sudoku">
     <header class="topbar">
       <a class="control-button" href="../../index.html" data-i18n="gameMenu">Main Menu</a>
       <h1 data-i18n="sudokuTitle">Sudoku</h1>
       <div class="controls">
+        <label class="difficulty-control" for="difficulty-select">
+          <span data-i18n="difficulty">Difficulty</span>
+          <select id="difficulty-select" aria-label="Difficulty" data-i18n-aria="difficulty">
+            <option value="easy" data-i18n="difficultyEasy">Easy · relaxed</option>
+            <option value="medium" data-i18n="difficultyMedium">Medium · thinking</option>
+            <option value="hard" data-i18n="difficultyHard">Hard · challenging</option>
+          </select>
+        </label>
         <button id="check-button" type="button" data-i18n="checkPuzzle">Check</button>
         <button id="undo-button" type="button" data-i18n="undo">Undo</button>
         <button id="new-game-button" type="button" data-i18n="newGame">New Game</button>
@@ -22,6 +30,6 @@
     </main>
     <span hidden data-i18n-title="sudokuTitle"></span>
     <script src="../../i18n.js?v=20260713-themes-1"></script>
-    <script src="app.js?v=20260713-puzzle-depth-1"></script>
+    <script src="app.js?v=20260713-sudoku-levels-1"></script>
   </body>
 </html>

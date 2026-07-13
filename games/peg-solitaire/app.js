@@ -4,7 +4,7 @@
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const KEY = "leave-me-alone-peg-solitaire-current-game";
-  const SAVE_VERSION = 5;
+  const SAVE_VERSION = 6;
   const LAYOUTS = [
     {
       id: "classic",
@@ -382,7 +382,7 @@
       for (let col = 0; col < 7; col += 1) {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = `peg-cell ${isValid(row, col) ? "" : "invalid"} ${sameCell(selected, row, col) ? "selected" : ""} ${legalTargets.has(`${row},${col}`) ? "legal" : ""}`;
+        button.className = `peg-cell ${isValid(row, col) ? "" : "invalid"} ${state.pegs[row][col] ? "has-peg" : ""} ${sameCell(selected, row, col) ? "selected" : ""} ${legalTargets.has(`${row},${col}`) ? "legal" : ""}`;
         button.setAttribute("aria-label", t("pegHole", { number: row * 7 + col + 1 }));
         button.disabled = !isValid(row, col);
         button.addEventListener("click", () => clickHole(row, col));
