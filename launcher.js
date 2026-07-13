@@ -216,13 +216,19 @@
   function showHelp(game) {
     helpTitle.textContent = localizedTitle(game);
     helpBody.textContent = "";
-    (HELP[game.id] || [t("howToPlayFallback")]).forEach((line) => {
+    localizedHelp(game.id).forEach((line) => {
       const paragraph = document.createElement("p");
       paragraph.textContent = line;
       helpBody.appendChild(paragraph);
     });
     if (typeof helpDialog.showModal === "function") helpDialog.showModal();
     else helpDialog.setAttribute("open", "");
+  }
+
+  function localizedHelp(gameId) {
+    const language = window.LMAG_I18N?.getLanguage?.() || "en";
+    const lines = window.LMAG_HELP?.[language]?.[gameId] || window.LMAG_HELP?.en?.[gameId] || HELP[gameId] || [t("howToPlayFallback")];
+    return Array.isArray(lines) ? lines : [lines];
   }
 
   function enhanceCards() {

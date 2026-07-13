@@ -1,10 +1,11 @@
-const CACHE_NAME = "leave-me-alone-games-v86";
+const CACHE_NAME = "leave-me-alone-games-v87";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./launcher.css?v=20260713-final-polish-1",
-  "./launcher.js?v=20260713-final-polish-1",
-  "./i18n.js?v=20260713-final-polish-1",
+  "./launcher.js?v=20260713-help-i18n-1",
+  "./i18n.js?v=20260713-help-i18n-1",
+  "./help-i18n.js?v=20260713-help-i18n-1",
   "./manifest.webmanifest?v=20260607-app-1",
   "./games/klondike/",
   "./games/klondike/index.html",
