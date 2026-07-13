@@ -4,8 +4,9 @@
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const KEY = "leave-me-alone-nonograms-current-game";
-  const SAVE_VERSION = 3;
-  const SIZE = 10;
+  const SAVE_VERSION = 4;
+  const SIZES = [8, 10, 12];
+  const DEFAULT_SIZE = 10;
   const board = document.getElementById("game-board");
   const status = document.getElementById("status");
   const undoButton = document.getElementById("undo-button");
@@ -18,13 +19,14 @@
     try {
       const theme = localStorage.getItem(THEME_KEY);
       const selectedTheme = THEMES.has(theme) ? theme : "colorblind";
-      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange");
+      document.body.dataset.theme = selectedTheme;
+      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange", "theme-purple", "theme-red", "theme-sand", "theme-midnight", "theme-rose");
       if (selectedTheme !== "green") document.body.classList.add(`theme-${selectedTheme}`);
     } catch {}
   }
 
-  function emptyGrid(value = 0) {
-    return Array.from({ length: SIZE }, () => Array(SIZE).fill(value));
+  function emptyGrid(size = DEFAULT_SIZE, value = 0) {
+    return Array.from({ length: size }, () => Array(size).fill(value));
   }
 
   function clone(value) {
@@ -35,37 +37,44 @@
     return min + Math.floor(Math.random() * (max - min + 1));
   }
 
+  function randomItem(items) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
   function stamp(grid, row, col, radius = 1) {
+    const size = grid.length;
     for (let r = row - radius; r <= row + radius; r += 1) {
       for (let c = col - radius; c <= col + radius; c += 1) {
-        if (r < 0 || c < 0 || r >= SIZE || c >= SIZE) continue;
+        if (r < 0 || c < 0 || r >= size || c >= size) continue;
         if (Math.abs(r - row) + Math.abs(c - col) <= radius + 1) grid[r][c] = 1;
       }
     }
   }
 
   function mirror(grid) {
+    const size = grid.length;
     const mode = Math.random();
-    for (let r = 0; r < SIZE; r += 1) {
-      for (let c = 0; c < SIZE; c += 1) {
+    for (let r = 0; r < size; r += 1) {
+      for (let c = 0; c < size; c += 1) {
         if (!grid[r][c]) continue;
-        if (mode < 0.45) grid[r][SIZE - 1 - c] = 1;
-        else if (mode < 0.75) grid[SIZE - 1 - r][c] = 1;
+        if (mode < 0.45) grid[r][size - 1 - c] = 1;
+        else if (mode < 0.75) grid[size - 1 - r][c] = 1;
         else {
-          grid[r][SIZE - 1 - c] = 1;
-          grid[SIZE - 1 - r][c] = 1;
+          grid[r][size - 1 - c] = 1;
+          grid[size - 1 - r][c] = 1;
         }
       }
     }
   }
 
   function addLines(grid) {
-    const count = rand(2, 4);
+    const size = grid.length;
+    const count = rand(size >= 12 ? 3 : 2, size >= 12 ? 5 : 4);
     for (let i = 0; i < count; i += 1) {
       const horizontal = Math.random() < 0.5;
-      const fixed = rand(1, SIZE - 2);
-      const start = rand(0, 3);
-      const end = rand(6, SIZE - 1);
+      const fixed = rand(1, size - 2);
+      const start = rand(0, Math.max(1, Math.floor(size * 0.32)));
+      const end = rand(Math.ceil(size * 0.62), size - 1);
       for (let n = start; n <= end; n += 1) {
         const row = horizontal ? fixed : n;
         const col = horizontal ? n : fixed;
@@ -75,9 +84,10 @@
   }
 
   function addBlobs(grid) {
-    const count = rand(3, 6);
+    const size = grid.length;
+    const count = rand(size >= 12 ? 5 : 3, size >= 12 ? 8 : 6);
     for (let i = 0; i < count; i += 1) {
-      stamp(grid, rand(1, SIZE - 2), rand(1, SIZE - 2), rand(1, 2));
+      stamp(grid, rand(1, size - 2), rand(1, size - 2), rand(1, size >= 12 ? 3 : 2));
     }
   }
 
@@ -85,34 +95,41 @@
     return grid.flat().filter(Boolean).length;
   }
 
-  function makeSolution() {
+  function makeSolution(size = DEFAULT_SIZE) {
     let grid;
     let attempts = 0;
+    const cells = size * size;
+    const minFilled = Math.floor(cells * 0.22);
+    const maxFilled = Math.floor(cells * 0.62);
     do {
-      grid = emptyGrid();
+      grid = emptyGrid(size);
       addBlobs(grid);
       addLines(grid);
       mirror(grid);
       attempts += 1;
-    } while ((cellCount(grid) < 22 || cellCount(grid) > 62) && attempts < 30);
+    } while ((cellCount(grid) < minFilled || cellCount(grid) > maxFilled) && attempts < 30);
     return grid;
   }
 
   function fresh() {
+    const size = randomItem(SIZES);
     return {
       version: SAVE_VERSION,
-      size: SIZE,
-      solution: makeSolution(),
-      marks: emptyGrid(),
+      size,
+      solution: makeSolution(size),
+      marks: emptyGrid(size),
       solved: false
     };
   }
 
   function isValidSave(saved) {
+    const size = saved?.size;
     return saved?.version === SAVE_VERSION &&
-      saved?.size === SIZE &&
-      saved?.solution?.length === SIZE &&
-      saved?.marks?.length === SIZE;
+      SIZES.includes(size) &&
+      saved?.solution?.length === size &&
+      saved?.marks?.length === size &&
+      saved.solution.every((row) => Array.isArray(row) && row.length === size) &&
+      saved.marks.every((row) => Array.isArray(row) && row.length === size);
   }
 
   function save() {
@@ -165,13 +182,15 @@
   function render() {
     board.textContent = "";
     board.className = "board";
-    board.style.setProperty("--nonogram-size", String(SIZE));
+    const size = state.size || DEFAULT_SIZE;
+    board.style.setProperty("--nonogram-size", String(size));
+    board.style.setProperty("--nonogram-cell", size >= 12 ? "clamp(1.05rem, 5.75vw, 1.7rem)" : size <= 8 ? "clamp(1.55rem, 8.2vw, 2.45rem)" : "clamp(1.38rem, 7.2vw, 2.15rem)");
     const wrap = document.createElement("div");
     wrap.className = "nonogram-wrap";
 
     const top = document.createElement("div");
     top.className = "top-clues";
-    for (let c = 0; c < SIZE; c += 1) top.appendChild(label(clues(state.solution.map((row) => row[c]))));
+    for (let c = 0; c < size; c += 1) top.appendChild(label(clues(state.solution.map((row) => row[c]))));
 
     const side = document.createElement("div");
     side.className = "side-clues";
@@ -204,9 +223,10 @@
   }
 
   function check() {
+    const size = state.size || DEFAULT_SIZE;
     const solved = state.marks.flat().every((value, i) => {
-      const row = Math.floor(i / SIZE);
-      const col = i % SIZE;
+      const row = Math.floor(i / size);
+      const col = i % size;
       return (value === 1 ? 1 : 0) === state.solution[row][col];
     });
     state.solved = solved;

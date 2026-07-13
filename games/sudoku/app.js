@@ -4,7 +4,7 @@
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const KEY = "leave-me-alone-sudoku-current-game";
-  const SAVE_VERSION = 2;
+  const SAVE_VERSION = 3;
   const SIZE = 9;
   const BOX = 3;
   const board = document.getElementById("game-board");
@@ -18,7 +18,8 @@
     try {
       const theme = localStorage.getItem(THEME_KEY);
       const selectedTheme = THEMES.has(theme) ? theme : "colorblind";
-      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange");
+      document.body.dataset.theme = selectedTheme;
+      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange", "theme-purple", "theme-red", "theme-sand", "theme-midnight", "theme-rose");
       if (selectedTheme !== "green") document.body.classList.add(`theme-${selectedTheme}`);
     } catch {}
   }
@@ -47,16 +48,87 @@
     return rows.map((row) => cols.map((col) => numbers[pattern(row, col)]));
   }
 
+  function allowedValues(values, row, col) {
+    const used = new Set();
+    for (let index = 0; index < SIZE; index += 1) {
+      if (values[row][index]) used.add(values[row][index]);
+      if (values[index][col]) used.add(values[index][col]);
+    }
+    const startRow = Math.floor(row / BOX) * BOX;
+    const startCol = Math.floor(col / BOX) * BOX;
+    for (let r = startRow; r < startRow + BOX; r += 1) {
+      for (let c = startCol; c < startCol + BOX; c += 1) {
+        if (values[r][c]) used.add(values[r][c]);
+      }
+    }
+    return shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9].filter((value) => !used.has(value)));
+  }
+
+  function countSolutions(values, limit = 2) {
+    const grid = values.map((row) => row.slice());
+    let count = 0;
+
+    function findCell() {
+      let best = null;
+      let bestChoices = null;
+      for (let row = 0; row < SIZE; row += 1) {
+        for (let col = 0; col < SIZE; col += 1) {
+          if (grid[row][col]) continue;
+          const choices = allowedValues(grid, row, col);
+          if (!choices.length) return { row, col, choices };
+          if (!bestChoices || choices.length < bestChoices.length) {
+            best = { row, col };
+            bestChoices = choices;
+          }
+        }
+      }
+      return best ? { ...best, choices: bestChoices } : null;
+    }
+
+    function solve() {
+      if (count >= limit) return;
+      const cell = findCell();
+      if (!cell) {
+        count += 1;
+        return;
+      }
+      if (!cell.choices.length) return;
+      cell.choices.forEach((value) => {
+        grid[cell.row][cell.col] = value;
+        solve();
+        grid[cell.row][cell.col] = 0;
+      });
+    }
+
+    solve();
+    return count;
+  }
+
   function makePuzzle(solution) {
     const values = solution.map((row) => row.slice());
     const fixed = Array.from({ length: SIZE }, () => Array(SIZE).fill(1));
-    const holes = shuffle(Array.from({ length: SIZE * SIZE }, (_, index) => index));
-    const targetHoles = 44 + Math.floor(Math.random() * 6);
-    holes.slice(0, targetHoles).forEach((index) => {
+    const holes = shuffle(Array.from({ length: Math.ceil(SIZE * SIZE / 2) }, (_, index) => index));
+    const targetGivens = 30 + Math.floor(Math.random() * 8);
+    holes.forEach((index) => {
+      if (values.flat().filter(Boolean).length <= targetGivens) return;
       const row = Math.floor(index / SIZE);
       const col = index % SIZE;
-      values[row][col] = 0;
-      fixed[row][col] = 0;
+      const pairRow = SIZE - 1 - row;
+      const pairCol = SIZE - 1 - col;
+      const removed = [[row, col], [pairRow, pairCol]]
+        .filter(([r, c], i, cells) => values[r][c] && cells.findIndex(([er, ec]) => er === r && ec === c) === i)
+        .map(([r, c]) => [r, c, values[r][c]]);
+      if (!removed.length) return;
+      removed.forEach(([r, c]) => {
+        values[r][c] = 0;
+        fixed[r][c] = 0;
+      });
+      if (countSolutions(values) !== 1) {
+        removed.forEach(([r, c, value]) => {
+          values[r][c] = value;
+          fixed[r][c] = 1;
+        });
+      }
     });
     return { values, fixed };
   }

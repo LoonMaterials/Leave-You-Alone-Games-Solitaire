@@ -4,7 +4,7 @@
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const KEY = "leave-me-alone-peg-solitaire-current-game";
-  const SAVE_VERSION = 4;
+  const SAVE_VERSION = 5;
   const LAYOUTS = [
     {
       id: "classic",
@@ -136,6 +136,45 @@
       ],
       goals: [{ row: 3, col: 3 }, { row: 0, col: 4 }, { row: 6, col: 2 }],
     },
+    {
+      id: "lantern",
+      mask: [
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 0, 1, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 0, 1, 0, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 0, col: 3 }, { row: 6, col: 3 }],
+    },
+    {
+      id: "windmill",
+      mask: [
+        [1, 1, 0, 1, 0, 1, 1],
+        [1, 1, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 1, 1],
+        [1, 1, 0, 1, 0, 1, 1],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 1, col: 3 }, { row: 5, col: 3 }],
+    },
+    {
+      id: "diamond-wide",
+      mask: [
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+      ],
+      goals: [{ row: 3, col: 3 }, { row: 2, col: 3 }, { row: 4, col: 3 }],
+    },
   ];
   const DIRECTIONS = [
     [-1, 0],
@@ -155,7 +194,8 @@
     try {
       const theme = localStorage.getItem(THEME_KEY);
       const selectedTheme = THEMES.has(theme) ? theme : "colorblind";
-      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange");
+      document.body.dataset.theme = selectedTheme;
+      document.body.classList.remove("theme-colorblind", "theme-blue", "theme-grey", "theme-orange", "theme-purple", "theme-red", "theme-sand", "theme-midnight", "theme-rose");
       if (selectedTheme !== "green") document.body.classList.add(`theme-${selectedTheme}`);
     } catch {}
   }
