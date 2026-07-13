@@ -5,6 +5,7 @@
   const AUTO_FINISH_KEY = "leave-me-alone-games-auto-finish";
   const LAST_GAME_KEY = "leave-me-alone-games-last-game";
   const FAVORITES_KEY = "leave-me-alone-games-favorites";
+  const PRESERVED_RESET_KEYS = new Set([THEME_KEY, AUTO_FINISH_KEY, "leave-me-alone-games-language"]);
   const THEME_OPTIONS = [
     ["colorblind", "colorblind", "Color Blind"],
     ["green", "green", "Green"],
@@ -30,33 +31,34 @@
   const helpTitle = document.getElementById("help-title");
   const helpBody = document.getElementById("help-body");
   const helpClose = document.getElementById("help-close");
+  const resetAppData = document.getElementById("reset-app-data");
 
   const HELP = {
-    klondike: ["Build foundations from Ace to King.", "Move cards in alternating colors. Choose Draw 1 or Draw 3 inside the game."],
-    freecell: ["Use the four free cells to temporarily hold cards.", "Build each suit from Ace to King."],
-    spider: ["Build same-suit runs from King down to Ace.", "Spider has one, two, and four-suit modes."],
-    pyramid: ["Remove pairs that add up to 13.", "Kings can be removed by themselves."],
-    tripeaks: ["Clear cards one rank higher or lower than the waste card.", "Use the stock when no visible card fits."],
-    golf: ["Play a card one rank higher or lower than the waste card.", "Try to clear the layout before the stock runs out."],
-    yukon: ["Move face-up runs, even if the sequence has gaps.", "Build foundations from Ace to King."],
-    chess: ["Move pieces by standard chess rules.", "Use Mode for computer or same-device play. Grandmaster is chess only."],
-    checkers: ["Move diagonally and jump to capture.", "Reach the far side to make a king."],
-    mahjong: ["Match two free tiles with the same symbol.", "A tile is free when it is not covered and has a left or right side open."],
-    dominoes: ["Match pips to an open end of the domino chain.", "Draw or pass when you have no legal play."],
-    reversi: ["Place a disc to trap opponent discs in a line.", "Most discs at the end wins."],
-    "backgammon-classic": ["Move checkers by the dice and bear them off.", "Blocked points and bar entry use regular backgammon rules."],
-    connect4: ["Drop pieces into columns.", "First to connect four in a row wins."],
-    "tic-tac-toe": ["Take turns placing marks.", "Three in a row wins."],
-    yacht: ["Roll up to three times, holding dice you want to keep.", "Choose one score category each turn."],
-    farkle: ["Keep scoring dice, then roll again or bank your points.", "If a roll has no scoring dice, that turn scores zero."],
-    "shut-the-box": ["Roll the dice and close open tiles that add to the roll.", "Lowest open total wins after both players finish."],
-    sudoku: ["Fill every row, column, and 3x3 box with 1 to 9.", "No repeats in any row, column, or box."],
-    kakuro: ["Fill runs with 1 to 9 so they add to each clue.", "Digits cannot repeat within a run."],
-    "peg-solitaire": ["Jump one peg over another into an empty space.", "Try to finish with one peg remaining."],
-    mastermind: ["Guess the hidden code.", "Exact means right color and spot. Close means right color, wrong spot."],
-    nonograms: ["Use row and column clues to fill the picture.", "Tap cells to cycle fill, X, and blank."],
-    "2048": ["Slide tiles to merge matching numbers.", "Try to reach 2048, then keep going if you want."],
-    "lights-out": ["Tap a light to flip it and its neighbors.", "Turn every light off to win."]
+    klondike: ["How to win: build all four foundations from Ace to King.", "Move cards in alternating colors and descending order. Choose Draw 1 or Draw 3 inside the game."],
+    freecell: ["How to win: build each suit from Ace to King.", "Use the four free cells as temporary parking spots. Empty columns are powerful."],
+    spider: ["How to win: clear every card by making King-to-Ace runs.", "Spider has one, two, and four-suit modes. Same-suit complete runs leave the table."],
+    pyramid: ["How to win: clear the pyramid.", "Remove exposed pairs that add to 13. Kings are worth 13 and can be removed alone."],
+    tripeaks: ["How to win: clear all three peaks.", "Play visible cards one rank higher or lower than the waste card. Use the stock when stuck."],
+    golf: ["How to win: clear the layout before the stock runs out.", "Play a visible card one rank higher or lower than the waste card."],
+    yukon: ["How to win: build all four foundations from Ace to King.", "You can move face-up runs even when the run has gaps, which makes Yukon feel more open."],
+    chess: ["How to win: checkmate the opponent king.", "Use Mode for computer or same-device play. Difficulty changes the computer search; Grandmaster is chess only."],
+    checkers: ["How to win: capture or block all opposing pieces.", "Move diagonally, jump to capture, and reach the far side to crown a king."],
+    mahjong: ["How to win: remove every tile by matching pairs.", "A tile is free when it is not covered and has a left or right side open. Layouts and tile sets vary."],
+    dominoes: ["How to win: empty your hand or have the lowest pip total when blocked.", "Match pips to an open end of the chain. Draw or pass when no legal play exists."],
+    reversi: ["How to win: have the most discs when the board fills or no moves remain.", "Place a disc to trap opponent discs in a straight line."],
+    "backgammon-classic": ["How to win: bear off all your checkers first.", "Move by the dice, enter from the bar before other moves, and block points with two or more checkers."],
+    connect4: ["How to win: connect four pieces in a row.", "Connections can be vertical, horizontal, or diagonal."],
+    "tic-tac-toe": ["How to win: make three in a row.", "Medium is intentionally beatable, so a careful player can still win."],
+    yacht: ["How to win: finish the scorecard with more points than the opponent.", "Roll up to three times, hold dice you like, then choose one score category."],
+    farkle: ["How to win: be first to reach the target score.", "Keep scoring dice, then roll again or bank. If a roll has no scoring dice, that turn scores zero."],
+    "shut-the-box": ["How to win: finish with a lower open-tile total than the opponent.", "Roll the dice, close open tiles that add exactly to the roll, then keep rolling until no move remains."],
+    sudoku: ["How to win: fill every row, column, and 3x3 box with 1 to 9.", "No repeats are allowed. Use Easy, Medium, or Hard to control how many starting numbers you get."],
+    kakuro: ["How to win: fill every white cell so each clue sum is correct.", "Use 1 to 9. Digits cannot repeat within a clue run."],
+    "peg-solitaire": ["How to win: finish with one peg remaining.", "Jump one peg over another into an empty hole. The jumped peg is removed."],
+    mastermind: ["How to win: guess the hidden code before your guesses run out.", "Exact means right color and spot. Close means right color, wrong spot."],
+    nonograms: ["How to win: match the hidden picture exactly.", "Row and column clues show filled runs. New puzzles vary in size and pattern."],
+    "2048": ["How to win: merge tiles until you reach 2048.", "The game can continue after 2048 if you want a higher score."],
+    "lights-out": ["How to win: turn every light off.", "Tapping a light flips it and its neighbors. New puzzles vary between small and larger boards."]
   };
 
   function t(key, values) {
@@ -315,6 +317,22 @@
     }
   }
 
+  function resetLocalAppData() {
+    if (!window.confirm(t("resetAppDataConfirm"))) return;
+    try {
+      sessionStorage.clear();
+    } catch {}
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("leave-me-alone-") && !PRESERVED_RESET_KEYS.has(key)) localStorage.removeItem(key);
+      });
+    } catch {}
+    refreshContinue();
+    refreshFavorites();
+    refreshFavoriteButtons();
+    window.alert(t("resetAppDataDone"));
+  }
+
   ensureThemeOptions();
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
   document.addEventListener("lmag:languagechange", () => {
@@ -322,6 +340,7 @@
     applyTheme(storedTheme());
   });
   autoFinishToggle.addEventListener("change", () => applyAutoFinish(autoFinishToggle.checked));
+  resetAppData?.addEventListener("click", resetLocalAppData);
   continueCard.addEventListener("click", () => {
     const saved = readJson(LAST_GAME_KEY, null);
     if (saved?.href) storeLastGame(saved);

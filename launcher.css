@@ -138,6 +138,19 @@ body {
   accent-color: #f6efe0;
 }
 
+.reset-data-button {
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  padding: 0.38rem 0.7rem;
+  color: var(--text);
+  background: rgba(70, 22, 22, 0.52);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
 #theme-select,
 #language-select {
   min-height: 38px;
@@ -363,6 +376,7 @@ body {
   }
 
   .auto-finish-control,
+  .reset-data-button,
   #theme-select,
   #language-select {
     min-height: 34px;

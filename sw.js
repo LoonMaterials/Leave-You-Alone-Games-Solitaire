@@ -1,10 +1,10 @@
-const CACHE_NAME = "leave-me-alone-games-v85";
+const CACHE_NAME = "leave-me-alone-games-v86";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./launcher.css?v=20260713-dropdown-fix-1",
-  "./launcher.js?v=20260713-dropdown-fix-1",
-  "./i18n.js?v=20260713-themes-1",
+  "./launcher.css?v=20260713-final-polish-1",
+  "./launcher.js?v=20260713-final-polish-1",
+  "./i18n.js?v=20260713-final-polish-1",
   "./manifest.webmanifest?v=20260607-app-1",
   "./games/klondike/",
   "./games/klondike/index.html",
@@ -76,8 +76,8 @@ const APP_SHELL = [
   "./games/farkle/app.js?v=20260713-farkle-log-1",
   "./games/shut-the-box/",
   "./games/shut-the-box/index.html",
-  "./games/shut-the-box/styles.css?v=20260713-themes-1",
-  "./games/shut-the-box/app.js?v=20260713-themes-1",
+  "./games/shut-the-box/styles.css?v=20260713-final-polish-1",
+  "./games/shut-the-box/app.js?v=20260713-final-polish-1",
   "./games/sudoku/",
   "./games/sudoku/index.html",
   "./games/sudoku/styles.css?v=20260713-sudoku-levels-1",

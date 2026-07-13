@@ -5,7 +5,7 @@
   const MODE_KEY = "leave-me-alone-shut-the-box-mode";
   const DIFFICULTY_KEY = "leave-me-alone-shut-the-box-difficulty";
   const THEME_KEY = "leave-me-alone-games-theme";
-  const SAVE_VERSION = 1;
+  const SAVE_VERSION = 2;
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const MODES = new Set(["computer", "two-player"]);
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
@@ -15,6 +15,7 @@
     status: document.getElementById("status"),
     score: document.getElementById("score"),
     dice: document.getElementById("dice"),
+    log: document.getElementById("turn-log"),
     roll: document.getElementById("roll"),
     shut: document.getElementById("shut"),
     undo: document.getElementById("undo"),
@@ -69,7 +70,7 @@
     return Math.floor(Math.random() * 6) + 1;
   }
 
-  function freshBoard(turn = "p1", roundScores = { p1: null, p2: null }) {
+  function freshBoard(turn = "p1", roundScores = { p1: null, p2: null }, log = []) {
     return {
       version: SAVE_VERSION,
       turn,
@@ -79,8 +80,14 @@
       dice: [],
       rolled: false,
       winner: null,
-      message: ""
+      message: "",
+      log
     };
+  }
+
+  function addLog(message) {
+    if (!message) return;
+    state.log = [message, ...(state.log || [])].slice(0, 5);
   }
 
   function saveState() {
@@ -157,9 +164,10 @@
 
   function finishRound() {
     const score = openTotal();
+    addLog(t("shutTheBoxRoundEnded", { player: currentName(), score }));
     state.roundScores[state.turn] = score;
     if (state.turn === "p1") {
-      state = freshBoard("p2", state.roundScores);
+      state = freshBoard("p2", state.roundScores, state.log || []);
     } else {
       if (state.roundScores.p1 < state.roundScores.p2) state.winner = "p1";
       else if (state.roundScores.p2 < state.roundScores.p1) state.winner = "p2";
@@ -174,9 +182,11 @@
     state.dice = [rollDie(), rollDie()];
     state.rolled = true;
     state.selected = [];
+    addLog(t("shutTheBoxRolled", { player: currentName(), dice: state.dice.join(" + ") }));
     const moves = availableMoves();
     if (!moves.length) {
       state.message = t("noMovesForRoll");
+      addLog(t("shutTheBoxNoMove", { player: currentName(), dice: diceTotal() }));
       finishRound();
     } else {
       state.message = "";
@@ -188,6 +198,7 @@
   function shutSelected() {
     if (state.winner || !state.rolled || selectedTotal() !== diceTotal()) return;
     rememberUndo();
+    addLog(t("shutTheBoxClosed", { player: currentName(), tiles: state.selected.join(" + ") }));
     state.open = state.open.filter((tile) => !state.selected.includes(tile));
     state.selected = [];
     state.dice = [];
@@ -218,14 +229,16 @@
       return;
     }
     state.selected = chooseComputerMove(moves);
+    addLog(t("shutTheBoxComputerChose", { tiles: state.selected.join(" + ") }));
+    render();
     window.setTimeout(() => {
       if (state.turn === "p2" && !state.winner) shutSelected();
-    }, 300);
+    }, 750);
   }
 
   function maybeComputerTurn() {
     if (!isTwoPlayer() && state.turn === "p2" && !state.winner) {
-      window.setTimeout(computerStep, 350);
+      window.setTimeout(computerStep, 700);
     }
   }
 
@@ -260,6 +273,14 @@
     els.status.textContent = statusText();
     els.score.textContent = `${t("player1")}: ${state.roundScores.p1 ?? "—"} · ${isTwoPlayer() ? t("player2") : t("computer")}: ${state.roundScores.p2 ?? "—"} · ${t("openTotal")}: ${openTotal()}`;
     els.dice.textContent = state.dice.length ? t("diceShowing", { dice: state.dice.join(" + ") }) : t("rollDicePrompt");
+    if (els.log) {
+      els.log.innerHTML = "";
+      (state.log?.length ? state.log : [t("shutTheBoxLogHint")]).forEach((message) => {
+        const row = document.createElement("div");
+        row.textContent = message;
+        els.log.appendChild(row);
+      });
+    }
     els.roll.disabled = Boolean(state.winner) || state.rolled || (!isTwoPlayer() && state.turn === "p2");
     els.shut.disabled = Boolean(state.winner) || !state.rolled || selectedTotal() !== diceTotal() || (!isTwoPlayer() && state.turn === "p2");
     if (els.difficulty) els.difficulty.disabled = isTwoPlayer();
