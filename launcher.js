@@ -5,7 +5,19 @@
   const AUTO_FINISH_KEY = "leave-me-alone-games-auto-finish";
   const LAST_GAME_KEY = "leave-me-alone-games-last-game";
   const FAVORITES_KEY = "leave-me-alone-games-favorites";
-  const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
+  const THEME_OPTIONS = [
+    ["colorblind", "colorblind", "Color Blind"],
+    ["green", "green", "Green"],
+    ["blue", "blue", "Blue"],
+    ["grey", "grey", "Grey"],
+    ["orange", "orange", "Orange"],
+    ["purple", "purple", "Purple"],
+    ["red", "red", "Red"],
+    ["sand", "sand", "Sand"],
+    ["midnight", "midnight", "Midnight"],
+    ["rose", "rose", "Rose"]
+  ];
+  const THEMES = new Set(THEME_OPTIONS.map(([value]) => value));
   const themeSelect = document.getElementById("theme-select");
   const autoFinishToggle = document.getElementById("auto-finish-toggle");
   const continueCard = document.getElementById("continue-card");
@@ -257,6 +269,23 @@
     }
   }
 
+  function themeLabel(key, fallback) {
+    return window.LMAG_I18N ? window.LMAG_I18N.t(key) : fallback;
+  }
+
+  function ensureThemeOptions() {
+    const currentValue = themeSelect.value || storedTheme();
+    themeSelect.innerHTML = "";
+    THEME_OPTIONS.forEach(([value, key, fallback]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.dataset.i18n = key;
+      option.textContent = themeLabel(key, fallback);
+      themeSelect.appendChild(option);
+    });
+    themeSelect.value = THEMES.has(currentValue) ? currentValue : "colorblind";
+  }
+
   function applyTheme(theme) {
     const nextTheme = THEMES.has(theme) ? theme : "colorblind";
     document.body.dataset.theme = nextTheme;
@@ -285,6 +314,7 @@
     }
   }
 
+  ensureThemeOptions();
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
   autoFinishToggle.addEventListener("change", () => applyAutoFinish(autoFinishToggle.checked));
   continueCard.addEventListener("click", () => {
