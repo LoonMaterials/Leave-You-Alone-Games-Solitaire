@@ -2,7 +2,7 @@
   "use strict";
 
   const STORAGE_KEY = "leave-me-alone-mahjong-current-game";
-  const SAVE_VERSION = 3;
+  const SAVE_VERSION = 4;
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange"]);
   const MIN_RANDOM_TILES = 56;
@@ -69,7 +69,19 @@
     { id: "coral", family: "sea", rank: "41", mark: "\u2739", short: "CRL", name: "Coral" },
     { id: "starfish", family: "sea", rank: "42", mark: "\u2726", short: "SEA", name: "Starfish" },
     { id: "pine", family: "forest", rank: "43", mark: "\u25B2", short: "PINE", name: "Pine" },
-    { id: "mushroom", family: "forest", rank: "44", mark: "\u25D9", short: "MUSH", name: "Mushroom" }
+    { id: "mushroom", family: "forest", rank: "44", mark: "\u25D9", short: "MUSH", name: "Mushroom" },
+    { id: "lantern", family: "festival", rank: "45", mark: "\u25C9", short: "LANT", name: "Lantern" },
+    { id: "bell", family: "festival", rank: "46", mark: "\u25D2", short: "BELL", name: "Bell" },
+    { id: "ribbon", family: "festival", rank: "47", mark: "\u25B6", short: "RIBN", name: "Ribbon" },
+    { id: "fan", family: "festival", rank: "48", mark: "\u25D6", short: "FAN", name: "Fan" },
+    { id: "planet", family: "space", rank: "49", mark: "\u25CE", short: "PLNT", name: "Planet" },
+    { id: "comet", family: "space", rank: "50", mark: "\u2736", short: "COMT", name: "Comet" },
+    { id: "rocket", family: "space", rank: "51", mark: "\u25B2", short: "RCKT", name: "Rocket" },
+    { id: "orbit", family: "space", rank: "52", mark: "\u25CC", short: "ORBT", name: "Orbit" },
+    { id: "book", family: "study", rank: "53", mark: "\u25A0", short: "BOOK", name: "Book" },
+    { id: "pen", family: "study", rank: "54", mark: "\u25C7", short: "PEN", name: "Pen" },
+    { id: "lamp", family: "study", rank: "55", mark: "\u2600", short: "LAMP", name: "Lamp" },
+    { id: "scroll", family: "study", rank: "56", mark: "\u224B", short: "SCRL", name: "Scroll" }
   ];
 
   const LAYOUTS = [
@@ -189,6 +201,86 @@
         ...range(4, 5).map((col) => ({ col, row: 2.3, layer: 2 })),
         ...range(4, 5).map((col) => ({ col, row: 3, layer: 2 }))
       ]
+    },
+    {
+      id: "fortress",
+      cols: 11,
+      rows: 6,
+      positions: [
+        ...range(2, 8).map((col) => ({ col, row: 0, layer: 0 })),
+        ...range(1, 9).map((col) => ({ col, row: 1, layer: 0 })),
+        ...range(0, 10).map((col) => ({ col, row: 2, layer: 0 })),
+        ...range(0, 10).map((col) => ({ col, row: 3, layer: 0 })),
+        ...range(1, 9).map((col) => ({ col, row: 4, layer: 0 })),
+        ...range(2, 8).map((col) => ({ col, row: 5, layer: 0 })),
+        ...range(3, 7).map((col) => ({ col, row: 1.1, layer: 1 })),
+        ...range(2, 8).map((col) => ({ col, row: 2.05, layer: 1 })),
+        ...range(2, 8).map((col) => ({ col, row: 3.05, layer: 1 })),
+        ...range(3, 7).map((col) => ({ col, row: 4, layer: 1 })),
+        ...range(4, 6).map((col) => ({ col, row: 2.55, layer: 2 })),
+        ...range(4, 6).map((col) => ({ col, row: 3.15, layer: 2 }))
+      ]
+    },
+    {
+      id: "butterfly",
+      cols: 11,
+      rows: 6,
+      positions: [
+        ...range(0, 3).map((col) => ({ col, row: 0, layer: 0 })),
+        ...range(7, 10).map((col) => ({ col, row: 0, layer: 0 })),
+        ...range(0, 4).map((col) => ({ col, row: 1, layer: 0 })),
+        ...range(6, 10).map((col) => ({ col, row: 1, layer: 0 })),
+        ...range(1, 9).map((col) => ({ col, row: 2, layer: 0 })),
+        ...range(1, 9).map((col) => ({ col, row: 3, layer: 0 })),
+        ...range(0, 4).map((col) => ({ col, row: 4, layer: 0 })),
+        ...range(6, 10).map((col) => ({ col, row: 4, layer: 0 })),
+        ...range(0, 3).map((col) => ({ col, row: 5, layer: 0 })),
+        ...range(7, 10).map((col) => ({ col, row: 5, layer: 0 })),
+        ...range(2, 4).map((col) => ({ col, row: 1.6, layer: 1 })),
+        ...range(6, 8).map((col) => ({ col, row: 1.6, layer: 1 })),
+        ...range(3, 7).map((col) => ({ col, row: 2.5, layer: 1 })),
+        ...range(2, 4).map((col) => ({ col, row: 3.4, layer: 1 })),
+        ...range(6, 8).map((col) => ({ col, row: 3.4, layer: 1 })),
+        { col: 5, row: 2.5, layer: 2 },
+        { col: 5, row: 3.05, layer: 2 },
+        { col: 5, row: 1.95, layer: 2 }
+      ]
+    },
+    {
+      id: "pagoda",
+      cols: 10,
+      rows: 7,
+      positions: [
+        ...range(3, 6).map((col) => ({ col, row: 0, layer: 0 })),
+        ...range(2, 7).map((col) => ({ col, row: 1, layer: 0 })),
+        ...range(1, 8).map((col) => ({ col, row: 2, layer: 0 })),
+        ...range(0, 9).map((col) => ({ col, row: 3, layer: 0 })),
+        ...range(1, 8).map((col) => ({ col, row: 4, layer: 0 })),
+        ...range(2, 7).map((col) => ({ col, row: 5, layer: 0 })),
+        ...range(3, 6).map((col) => ({ col, row: 6, layer: 0 })),
+        ...range(3, 6).map((col) => ({ col, row: 1.45, layer: 1 })),
+        ...range(2, 7).map((col) => ({ col, row: 2.45, layer: 1 })),
+        ...range(2, 7).map((col) => ({ col, row: 3.45, layer: 1 })),
+        ...range(3, 6).map((col) => ({ col, row: 4.45, layer: 1 })),
+        ...range(4, 5).map((col) => ({ col, row: 2.95, layer: 2 })),
+        ...range(4, 5).map((col) => ({ col, row: 3.55, layer: 2 }))
+      ]
+    },
+    {
+      id: "river",
+      cols: 12,
+      rows: 5,
+      positions: [
+        ...range(1, 9).map((col) => ({ col, row: 0, layer: 0 })),
+        ...range(0, 10).map((col) => ({ col, row: 1, layer: 0 })),
+        ...range(1, 11).map((col) => ({ col, row: 2, layer: 0 })),
+        ...range(0, 10).map((col) => ({ col, row: 3, layer: 0 })),
+        ...range(1, 9).map((col) => ({ col, row: 4, layer: 0 })),
+        ...range(2, 8).map((col) => ({ col, row: 0.65, layer: 1 })),
+        ...range(3, 9).map((col) => ({ col, row: 2, layer: 1 })),
+        ...range(2, 8).map((col) => ({ col, row: 3.35, layer: 1 })),
+        ...range(4, 7).map((col) => ({ col, row: 2, layer: 2 }))
+      ]
     }
   ];
 
@@ -225,7 +317,11 @@
 
   function freshState() {
     for (let attempt = 0; attempt < 40; attempt += 1) {
-      const layoutChoices = LAYOUTS.filter((item) => item.positions.length >= MIN_RANDOM_TILES);
+      const layoutChoices = LAYOUTS.filter((item) =>
+        item.positions.length >= MIN_RANDOM_TILES &&
+        item.positions.length % 2 === 0 &&
+        item.positions.length / 2 <= TILE_TYPES.length
+      );
       const layout = shuffle(layoutChoices.length ? layoutChoices : LAYOUTS)[0];
       const positions = layout.positions;
       const pairCount = positions.length / 2;

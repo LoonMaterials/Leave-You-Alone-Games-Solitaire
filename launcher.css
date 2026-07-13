@@ -130,6 +130,12 @@ body {
   gap: 14px;
 }
 
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+
 .game-section {
   display: grid;
   gap: 12px;
@@ -153,7 +159,8 @@ body {
   color: var(--muted);
 }
 
-.game-card {
+.game-card,
+.quick-card {
   min-height: 120px;
   border: 1px solid var(--panel-border);
   border-radius: 8px;
@@ -168,6 +175,51 @@ body {
   text-align: center;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.game-card-shell {
+  position: relative;
+  min-width: 0;
+}
+
+.game-card-shell .game-card {
+  height: 100%;
+  padding-top: 38px;
+}
+
+.quick-card.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.card-mini-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+}
+
+.mini-button {
+  min-width: 32px;
+  min-height: 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(10, 33, 26, 0.78);
+  font: inherit;
+  font-weight: 900;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  touch-action: manipulation;
+}
+
+.mini-button[aria-pressed="true"] {
+  color: #2c2412;
+  background: #ffe680;
+  border-color: rgba(255, 255, 255, 0.8);
 }
 
 .game-card-empty {
@@ -189,7 +241,10 @@ body {
   text-transform: uppercase;
 }
 
-.game-card:focus-visible {
+.game-card:focus-visible,
+.quick-card:focus-visible,
+.mini-button:focus-visible,
+.help-dialog button:focus-visible {
   outline: 3px solid rgba(255, 229, 147, 0.92);
   outline-offset: 3px;
 }
@@ -208,6 +263,49 @@ body {
   border-radius: 8px;
   padding: 16px 18px;
   background: rgba(10, 33, 26, 0.28);
+}
+
+.help-dialog {
+  width: min(92vw, 460px);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 0;
+  color: var(--text);
+  background: linear-gradient(135deg, var(--felt), var(--felt-dark));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.42);
+}
+
+.help-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.help-card {
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.help-card h2,
+.help-card p {
+  margin: 0;
+}
+
+.help-body {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.help-dialog button {
+  justify-self: end;
+  min-height: 40px;
+  border: 1px solid var(--panel-border);
+  border-radius: 7px;
+  padding: 0.45rem 0.75rem;
+  color: var(--text);
+  background: rgba(10, 33, 26, 0.72);
+  font: inherit;
 }
 
 @media (max-width: 560px) {
