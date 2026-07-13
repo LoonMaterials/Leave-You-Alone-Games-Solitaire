@@ -19,6 +19,7 @@
   ];
   const THEMES = new Set(THEME_OPTIONS.map(([value]) => value));
   const themeSelect = document.getElementById("theme-select");
+  let themeChoiceRow = document.getElementById("theme-choice-row");
   const autoFinishToggle = document.getElementById("auto-finish-toggle");
   const continueCard = document.getElementById("continue-card");
   const continueLabel = document.getElementById("continue-label");
@@ -276,12 +277,30 @@
   function ensureThemeOptions() {
     const currentValue = themeSelect.value || storedTheme();
     themeSelect.innerHTML = "";
+    if (!themeChoiceRow) {
+      themeChoiceRow = document.createElement("div");
+      themeChoiceRow.id = "theme-choice-row";
+      themeChoiceRow.className = "theme-choice-row";
+      themeChoiceRow.setAttribute("role", "group");
+      themeChoiceRow.setAttribute("aria-label", themeLabel("gameBackground", "Game background"));
+      themeSelect.closest(".theme-control")?.insertAdjacentElement("afterend", themeChoiceRow);
+    }
+    themeChoiceRow.innerHTML = "";
     THEME_OPTIONS.forEach(([value, key, fallback]) => {
       const option = document.createElement("option");
       option.value = value;
       option.dataset.i18n = key;
       option.textContent = themeLabel(key, fallback);
       themeSelect.appendChild(option);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "theme-choice";
+      button.dataset.themeChoice = value;
+      button.dataset.i18n = key;
+      button.textContent = themeLabel(key, fallback);
+      button.addEventListener("click", () => applyTheme(value));
+      themeChoiceRow.appendChild(button);
     });
     themeSelect.value = THEMES.has(currentValue) ? currentValue : "colorblind";
   }
@@ -290,6 +309,13 @@
     const nextTheme = THEMES.has(theme) ? theme : "colorblind";
     document.body.dataset.theme = nextTheme;
     themeSelect.value = nextTheme;
+    if (themeChoiceRow) {
+      themeChoiceRow.querySelectorAll(".theme-choice").forEach((button) => {
+        const selected = button.dataset.themeChoice === nextTheme;
+        button.classList.toggle("selected", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      });
+    }
     try {
       localStorage.setItem(THEME_KEY, nextTheme);
     } catch (error) {
@@ -316,6 +342,10 @@
 
   ensureThemeOptions();
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
+  document.addEventListener("lmag:languagechange", () => {
+    ensureThemeOptions();
+    applyTheme(storedTheme());
+  });
   autoFinishToggle.addEventListener("change", () => applyAutoFinish(autoFinishToggle.checked));
   continueCard.addEventListener("click", () => {
     const saved = readJson(LAST_GAME_KEY, null);

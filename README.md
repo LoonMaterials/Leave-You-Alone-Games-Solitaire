@@ -84,14 +84,8 @@ On iPhone:
 2. Tap Share.
 3. Tap Add to Home Screen.
 
-On Android:
-
-1. Open the hosted app in Chrome.
-2. Tap the browser menu.
-3. Tap Add to Home screen or Install app.
-
 ## App Store Notes
 
-This repository is currently a web version of the app. To submit it to app stores, bundle these files into native iOS and Android app projects that load the local app files.
+This repository is currently focused on the iPhone/iOS version of the app. To submit it to the App Store, use the included Capacitor iOS wrapper and generated local app files.
 
-See [STORE_PREP.md](STORE_PREP.md) for iOS and Android packaging notes.
+See [STORE_PREP.md](STORE_PREP.md) for iOS packaging notes.
