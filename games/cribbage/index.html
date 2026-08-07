@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#2f6f58">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Cribbage">
+    <title>Cribbage - Basic Build</title>
+    <link rel="manifest" href="../../manifest.webmanifest">
+    <link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+    <link rel="stylesheet" href="styles.css?v=20260804-base-1">
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="topbar">
+        <div>
+          <h1>Cribbage</h1>
+          <p>Basic local build · crib selection first</p>
+        </div>
+        <div class="actions">
+          <span id="status" class="status" aria-live="polite"></span>
+          <a class="button-link" href="../../index.html">Main Menu</a>
+          <button id="new-game" type="button">New Deal</button>
+        </div>
+      </header>
+      <section class="scorebar">
+        <div><span>Player 1</span><strong id="score-1">0</strong></div>
+        <div><span>Crib</span><strong id="crib-count">0 / 4</strong></div>
+        <div><span>Player 2</span><strong id="score-2">0</strong></div>
+      </section>
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Hands</h2>
+          <button id="confirm-selection" type="button" disabled>Send 2 to crib</button>
+        </div>
+        <div id="hands" class="players"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Crib and starter</h2>
+          <button id="next-phase" type="button" hidden>Begin basic pegging</button>
+        </div>
+        <div id="crib" class="card-row"></div>
+        <p id="note" class="note">Full pegging and scoring will be added in a later pass.</p>
+      </section>
+    </main>
+    <script src="app.js?v=20260804-base-1"></script>
+  </body>
+</html>

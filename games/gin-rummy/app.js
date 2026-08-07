@@ -1,0 +1,19 @@
+(function () {
+  "use strict";
+  const suits=["S","H","D","C"], ranks=["","","2","3","4","5","6","7","8","9","10","J","Q","K","A"], symbols={S:"♠",H:"♥",D:"♦",C:"♣"};
+  const themes=new Set(["colorblind","green","blue","grey","orange","purple","red","sand","midnight","rose"]);
+  const els={status:document.getElementById("status"),hands:document.getElementById("hands"),stock:document.getElementById("stock-count"),discard:document.getElementById("discard-top"),count1:document.getElementById("count-1"),count2:document.getElementById("count-2"),draw:document.getElementById("draw-card"),knock:document.getElementById("knock"),note:document.getElementById("turn-note")};
+  let state;
+  function makeDeck(){const cards=[];suits.forEach((suit)=>{for(let rank=2;rank<=14;rank+=1)cards.push({id:suit+rank,rank,suit});});return cards;}
+  function shuffle(cards){for(let i=cards.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]];}return cards;}
+  function text(card){return ranks[card.rank]+symbols[card.suit];} function red(card){return card.suit==="H"||card.suit==="D";}
+  function theme(){try{const value=localStorage.getItem("leave-me-alone-games-theme");document.body.dataset.theme=themes.has(value)?value:"colorblind";}catch{document.body.dataset.theme="colorblind";}}
+  function newGame(){const deck=shuffle(makeDeck());state={stock:deck,discard:[deck.pop()],hands:[[],[]],active:0,drawn:false,knocked:false};for(let i=0;i<10;i+=1){state.hands[0].push(state.stock.pop());state.hands[1].push(state.stock.pop());}render();}
+  function cardButton(card,enabled,onClick){const button=document.createElement("button");button.type="button";button.className="playing-card"+(red(card)?" red":"");button.textContent=text(card);button.disabled=!enabled;if(onClick)button.addEventListener("click",onClick);return button;}
+  function draw(){if(state.drawn||!state.stock.length||state.knocked)return;state.hands[state.active].push(state.stock.pop());state.drawn=true;render();}
+  function discard(index){if(!state.drawn||state.knocked)return;state.discard.push(state.hands[state.active].splice(index,1)[0]);state.active=state.active===0?1:0;state.drawn=false;render();}
+  function knock(){if(!state.drawn)return;state.knocked=true;render();}
+  function render(){els.hands.textContent="";state.hands.forEach((hand,player)=>{const box=document.createElement("div");box.className="player-box";const heading=document.createElement("h3");heading.textContent="Player "+(player+1)+(state.active===player?" · active":"");box.appendChild(heading);const row=document.createElement("div");row.className="card-row";hand.forEach((card,index)=>row.appendChild(cardButton(card,state.active===player&&state.drawn&&!state.knocked,()=>discard(index))));box.appendChild(row);els.hands.appendChild(box);});els.status.textContent=state.knocked?"Player "+(state.active+1)+" called knock.":"Player "+(state.active+1)+(state.drawn?" chooses a discard.":" draws a card.");els.stock.textContent=String(state.stock.length);els.discard.textContent=state.discard.length?text(state.discard[state.discard.length-1]):"—";els.count1.textContent=state.hands[0].length+" cards";els.count2.textContent=state.hands[1].length+" cards";els.draw.disabled=state.drawn||!state.stock.length||state.knocked;els.knock.disabled=!state.drawn||state.knocked;els.note.textContent=state.knocked?"Knock is recorded as a basic round marker. Full meld, layoff, deadwood, and scoring rules come next.":"Basic draw/discard and knock scaffolding is wired for later rules work.";}
+  document.getElementById("new-game").addEventListener("click",newGame);els.draw.addEventListener("click",draw);els.knock.addEventListener("click",knock);theme();newGame();
+  if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("../../sw.js").catch(()=>{}));
+})();

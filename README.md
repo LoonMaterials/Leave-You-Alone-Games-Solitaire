@@ -6,6 +6,8 @@ The app is designed for mobile-first play with no ads, accounts, tracking, analy
 
 ## Games
 
+### Card Games
+
 - Klondike Solitaire: `games/klondike/`
 - FreeCell: `games/freecell/`
 - Spider Solitaire: `games/spider/`
@@ -13,6 +15,27 @@ The app is designed for mobile-first play with no ads, accounts, tracking, analy
 - Tri-Peaks Solitaire: `games/tripeaks/`
 - Golf Solitaire: `games/golf/`
 - Yukon Solitaire: `games/yukon/`
+- Rummy: `games/rummy/` (basic local build)
+- Gin Rummy: `games/gin-rummy/` (basic local build)
+- Hearts: `games/hearts/` (basic local build)
+- Spades: `games/spades/` (basic local build)
+- 83-Maine's Card Game: `games/83-maines-card-game/` (local rule build)
+
+### Board Games
+
+- Chess: `games/chess/`
+- Checkers: `games/checkers/`
+- Mahjong: `games/mahjong/`
+- Dominoes: `games/dominoes/`
+- Reversi: `games/reversi/`
+- Backgammon: `games/backgammon-classic/`
+- Connect 4: `games/connect4/`
+- Tic-Tac-Toe: `games/tic-tac-toe/`
+- Cribbage: `games/cribbage/` (basic local build)
+
+### Dice and Puzzle Games
+
+The remaining game folders contain the dice and puzzle games listed on the launcher.
 
 ## Structure
 
@@ -27,13 +50,19 @@ The app is designed for mobile-first play with no ads, accounts, tracking, analy
 - `games/tripeaks/` - Tri-Peaks Solitaire HTML, CSS, and JS
 - `games/golf/` - Golf Solitaire HTML, CSS, and JS
 - `games/yukon/` - Yukon Solitaire HTML, CSS, and JS
+- `games/rummy/` - Rummy HTML, CSS, and JS
+- `games/gin-rummy/` - Gin Rummy HTML, CSS, and JS
+- `games/hearts/` - Hearts HTML, CSS, and JS
+- `games/spades/` - Spades HTML, CSS, and JS
+- `games/83-maines-card-game/` - 83-Maine's Card Game HTML, CSS, and JS
+- `games/cribbage/` - Cribbage HTML, CSS, and JS
 - `scripts/build-www.js` - builds the Capacitor app bundle
 - `manifest.webmanifest` - installable app metadata
 - `sw.js` - offline cache service worker
 - `icons/` - home-screen and app icons
 - `ios/` - Capacitor iOS wrapper for Xcode
 
-Each game folder owns its own page, styles, and game logic. New games should be added as separate folders under `games/`.
+Each game folder owns its own page, styles, and game logic. The five newest games are intentionally standalone basic builds with no shared game source files. New games should be added as separate folders under `games/`.
 
 ## Privacy
 
