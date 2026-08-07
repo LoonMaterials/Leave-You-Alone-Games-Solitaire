@@ -49,6 +49,7 @@ Needs before store submission:
 - Age rating answers
 - Real-device test pass
 - Final native iOS wrapper testing/signing
+- Final native Android wrapper testing/signing
 
 ## iOS Path
 
@@ -82,6 +83,24 @@ Apple requirement to account for:
 
 - Check the current Xcode and SDK requirement before uploading to App Store Connect.
 
+## Android Path
+
+Native Google Play release uses the separate Capacitor Android project in
+`android/`. Android Studio is required for emulator/device testing and release
+signing.
+
+- Rebuild and sync with `npm run sync:android`
+- Open Android Studio with `npm run open:android`
+- Test on a physical Android device and an emulator
+- Configure the Android application ID, app icon, version code, and signing key
+- Build a signed Android App Bundle for Google Play
+- Complete Play Console testing, content rating, data-safety, screenshots, and
+  store listing requirements
+
+The Android wrapper receives the same generated `www/` bundle as iOS. Game
+source remains isolated in its own folder under `games/`; platform projects do
+not contain duplicate copies of game logic.
+
 ## Recommended Next Milestones
 
 1. Confirm the GitHub Pages version is stable.
@@ -89,7 +108,10 @@ Apple requirement to account for:
 3. Create final app icon artwork.
 4. Capture phone screenshots.
 5. Keep the Capacitor iOS wrapper synced with `npm run sync:ios`.
-6. Create store accounts:
+6. Keep the Capacitor Android wrapper synced with `npm run sync:android`.
+7. Create store accounts:
    - Apple Developer Program
-7. Run beta testing:
+   - Google Play Console
+8. Run beta testing:
    - TestFlight for iOS
+   - Internal testing for Android

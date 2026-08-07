@@ -61,6 +61,7 @@ The remaining game folders contain the dice and puzzle games listed on the launc
 - `sw.js` - offline cache service worker
 - `icons/` - home-screen and app icons
 - `ios/` - Capacitor iOS wrapper for Xcode
+- `android/` - Capacitor Android wrapper for Android Studio
 
 Each game folder owns its own page, styles, and game logic. The five newest games are intentionally standalone basic builds with no shared game source files. New games should be added as separate folders under `games/`.
 
@@ -80,7 +81,7 @@ Open `index.html` in a browser.
 
 For phone testing, serve the folder with a static web server and open the served site from the phone.
 
-## Build For Xcode
+## Build For iOS
 
 The iOS wrapper loads the generated `www/` folder. That folder is not committed because it is rebuilt from the source files.
 
@@ -102,6 +103,25 @@ Do not move web files into `www/` or `ios/App/App/public/` manually. Both are
 generated copies. The source of truth is `index.html`, the root launcher files,
 `games/`, and `icons/`. Capacitor copies `www/` into `ios/App/App/public/` during
 `npm run sync:ios` or `npm run open:ios`.
+
+## Build For Android
+
+The Android wrapper is kept separately from the iOS wrapper in `android/`.
+The same standalone game folders are rebuilt into `www/`, then copied into the
+Android project by Capacitor.
+
+On a Windows or Linux development machine:
+
+1. Install Node.js and Android Studio.
+2. Run `npm install`.
+3. Run `npm run open:android` to rebuild, sync, and open Android Studio.
+
+To prepare and sync without opening Android Studio, run `npm run sync:android`.
+To rebuild only the generated web bundle, run `npm run prepare:android`.
+
+Do not manually copy files into `www/` or `android/app/src/main/assets/public/`;
+both are generated copies. The source of truth remains the root launcher files,
+`games/`, and `icons/`.
 
 ## Install As An App
 

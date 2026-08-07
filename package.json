@@ -4,15 +4,21 @@
   "description": "A quiet, offline game collection built with plain HTML, CSS, and JavaScript.",
   "main": "index.html",
   "scripts": {
-    "postinstall": "npm run prepare:ios",
-    "build": "npm run prepare:ios",
-    "prepare:ios": "node scripts/build-www.js",
+    "postinstall": "node scripts/build-www.js",
+    "build": "node scripts/build-www.js",
+    "prepare:web": "node scripts/build-www.js",
+    "prepare:ios": "npm run prepare:web",
+    "prepare:android": "npm run prepare:web",
     "clean:ios-web": "node scripts/clean-ios-public.js",
-    "sync": "npm run prepare:ios && npx cap sync",
+    "sync": "npm run prepare:web && npx cap sync",
     "sync:ios": "npm run prepare:ios && npm run clean:ios-web && npx cap sync ios",
     "open:ios": "npm run sync:ios && npx cap open ios",
+    "sync:android": "npm run prepare:android && npx cap sync android",
+    "open:android": "npm run sync:android && npx cap open android",
     "ios:sync": "npm run sync:ios",
-    "ios:open": "npm run open:ios"
+    "ios:open": "npm run open:ios",
+    "android:sync": "npm run sync:android",
+    "android:open": "npm run open:android"
   },
   "repository": {
     "type": "git",
@@ -27,6 +33,7 @@
   },
   "homepage": "https://github.com/LoonMaterials/Leave-Me-Alone-Games#readme",
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0"
