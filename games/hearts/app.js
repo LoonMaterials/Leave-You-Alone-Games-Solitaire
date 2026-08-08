@@ -5,8 +5,16 @@
   const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const SYMBOLS = { S: "♠", H: "♥", D: "♦", C: "♣" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
-  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"), scorebar: document.getElementById("scorebar"), finish: document.getElementById("finish-trick"), note: document.getElementById("note"), mode: document.getElementById("computer-mode") };
+  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"), scorebar: document.getElementById("scorebar"), finish: document.getElementById("finish-trick"), note: document.getElementById("note"), mode: document.getElementById("computer-mode"), playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand") };
   let state;
+
+  function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
+  function isHuman(player) { return !state.computer || player === 0; }
+  function canAct(player = state.active) { return !state.complete && state.active === player && isHuman(player) && handVisible(player); }
+  function resetReveal() {
+    if (state.lastActive !== state.active) { state.lastActive = state.active; state.revealedPlayer = state.computer ? 0 : -1; }
+  }
+  function showActiveHand() { if (!state.computer) { state.revealedPlayer = state.active; render(); } }
 
   function makeDeck() {
     const deck = [];
@@ -26,9 +34,20 @@
 
   function newGame() {
     const deck = shuffle(makeDeck());
-    state = { hands: [[], [], [], []], active: 0, trick: [], trickCount: 0, scores: [0, 0, 0, 0], heartsBroken: false, complete: false, computer: els.mode.checked, finishPending: false, aiPending: false };
-    for (let round = 0; round < 13; round += 1) for (let player = 0; player < 4; player += 1) state.hands[player].push(deck.pop());
-    state.active = state.hands.findIndex((hand) => hand.some((card) => card.id === "C2"));
+    const computer = els.mode.checked;
+    const playerCount = computer ? 4 : Number(els.playerCount.value);
+    const handSize = Math.floor(52 / playerCount);
+    state = { hands: Array.from({ length: playerCount }, () => []), playerCount, active: 0, trick: [], trickCount: 0, scores: Array(playerCount).fill(0), heartsBroken: false, complete: false, computer, finishPending: false, aiPending: false, revealedPlayer: 0, lastActive: 0 };
+    for (let round = 0; round < handSize; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(deck.pop());
+    if (computer) state.active = state.hands.findIndex((hand) => hand.some((card) => card.id === "C2"));
+    else {
+      const owner = state.hands.findIndex((hand) => hand.some((card) => card.id === "C2"));
+      const index = state.hands[owner].findIndex((card) => card.id === "C2");
+      if (owner < 0) { const leftover = deck.findIndex((card) => card.id === "C2"); state.hands[0][0] = deck.splice(leftover, 1)[0]; }
+      else [state.hands[0][0], state.hands[owner][index]] = [state.hands[owner][index], state.hands[0][0]];
+      state.active = 0;
+    }
+    els.playerCount.disabled = computer;
     render();
     scheduleAI();
   }
@@ -52,15 +71,15 @@
   }
 
   function playCard(player, index) {
-    if (state.complete || state.active !== player || state.trick.length >= 4) return;
+    if (state.complete || state.active !== player || state.trick.length >= state.playerCount || (isHuman(player) ? !handVisible(player) : !state.computer)) return;
     const card = state.hands[player][index];
     if (!card || !legalCards(player).some((candidate) => candidate.id === card.id)) return;
     state.hands[player].splice(index, 1);
     state.trick.push({ player, card });
     if (isHeart(card)) state.heartsBroken = true;
-    if (state.trick.length < 4) state.active = (player + 1) % 4;
+    if (state.trick.length < state.playerCount) state.active = (player + 1) % state.playerCount;
     render();
-    if (state.trick.length === 4) scheduleFinish(); else scheduleAI();
+    if (state.trick.length === state.playerCount) scheduleFinish(); else scheduleAI();
   }
 
   function aiCard(player) {
@@ -75,11 +94,11 @@
   }
 
   function scheduleAI() {
-    if (!state || !state.computer || state.complete || state.active === 0 || state.trick.length >= 4 || state.aiPending) return;
+    if (!state || !state.computer || state.complete || state.active === 0 || state.trick.length >= state.playerCount || state.aiPending) return;
     state.aiPending = true;
     window.setTimeout(() => {
       state.aiPending = false;
-      if (!state || !state.computer || state.complete || state.active === 0 || state.trick.length >= 4) return;
+      if (!state || !state.computer || state.complete || state.active === 0 || state.trick.length >= state.playerCount) return;
       const card = aiCard(state.active);
       playCard(state.active, state.hands[state.active].findIndex((candidate) => candidate.id === card.id));
     }, 300);
@@ -92,7 +111,7 @@
   }
 
   function finishTrick() {
-    if (state.trick.length !== 4 || state.complete) return;
+    if (state.trick.length !== state.playerCount || state.complete) return;
     const winner = trickWinner(state.trick);
     const trickPoints = state.trick.reduce((total, entry) => total + points(entry.card), 0);
     state.scores[winner.player] += trickPoints;
@@ -111,12 +130,13 @@
   }
 
   function render() {
+    resetReveal();
     els.hands.textContent = "";
     state.hands.forEach((hand, player) => {
       const box = document.createElement("div"); box.className = "player-box";
       const heading = document.createElement("h3"); heading.textContent = playerName(player) + " · " + hand.length + " cards" + (state.active === player && !state.complete ? " · active" : "") + (player > 0 && state.computer ? " · computer" : ""); box.appendChild(heading);
       const row = document.createElement("div"); row.className = "card-row";
-      hand.forEach((card, index) => row.appendChild(cardButton(card, player === 0 && state.active === 0 && !state.complete && state.trick.length < 4 && legalCards(0).some((candidate) => candidate.id === card.id), () => playCard(player, index), player > 0 && state.computer)));
+      hand.forEach((card, index) => row.appendChild(cardButton(card, canAct(player) && state.trick.length < state.playerCount && legalCards(player).some((candidate) => candidate.id === card.id), () => playCard(player, index), !handVisible(player))));
       box.appendChild(row); els.hands.appendChild(box);
     });
     els.trick.textContent = "";
@@ -124,11 +144,16 @@
     els.scorebar.textContent = "";
     state.scores.forEach((score, player) => { const item = document.createElement("div"); item.innerHTML = "<span>" + playerName(player) + "</span><strong>" + score + " points</strong>"; els.scorebar.appendChild(item); });
     els.status.textContent = state.complete ? "Deal complete." : playerName(state.active) + " to play.";
-    els.finish.disabled = state.trick.length !== 4 || state.complete;
+    els.finish.disabled = state.trick.length !== state.playerCount || state.complete;
+    els.passPanel.hidden = state.computer || state.complete || handVisible(state.active);
+    els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
+    els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
     els.note.textContent = state.complete ? "Start a new deal to test another hand." : (state.heartsBroken ? "Hearts are broken. Follow suit whenever possible." : "Hearts are not broken yet. The 2♣ leads the first trick; point cards are restricted on that trick.");
   }
 
-  els.mode.addEventListener("change", () => { if (state) { state.computer = els.mode.checked; if (!state.computer) state.aiPending = false; render(); scheduleAI(); } });
+  els.mode.addEventListener("change", () => { newGame(); });
+  els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
+  els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame); els.finish.addEventListener("click", finishTrick);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
   newGame();

@@ -9,9 +9,17 @@
     status: document.getElementById("status"), hands: document.getElementById("hands"), stock: document.getElementById("stock-count"),
     discard: document.getElementById("discard-top"), count1: document.getElementById("count-1"), count2: document.getElementById("count-2"),
     draw: document.getElementById("draw-card"), drawDiscard: document.getElementById("draw-discard"), discardCard: document.getElementById("discard-card"),
-    knock: document.getElementById("knock"), mode: document.getElementById("computer-mode"), note: document.getElementById("turn-note")
+    knock: document.getElementById("knock"), mode: document.getElementById("computer-mode"), playerCount: document.getElementById("player-count"),
+    passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note")
   };
   let state;
+
+  function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
+  function canAct() { return state.result === null && (!state.computer || state.active === 0) && handVisible(state.active); }
+  function resetReveal() {
+    if (state.lastActive !== state.active) { state.lastActive = state.active; state.revealedPlayer = state.computer ? 0 : -1; }
+  }
+  function showActiveHand() { if (!state.computer) { state.revealedPlayer = state.active; render(); } }
 
   function makeDeck() {
     const deck = [];
@@ -73,31 +81,35 @@
 
   function newGame() {
     const deck = shuffle(makeDeck());
-    state = { stock: deck, discard: [deck.pop()], hands: [[], []], active: 0, drawn: false, selected: null, computer: els.mode.checked, scores: [0, 0], result: null, aiPending: false };
-    for (let round = 0; round < 10; round += 1) { state.hands[0].push(state.stock.pop()); state.hands[1].push(state.stock.pop()); }
+    const computer = els.mode.checked;
+    const playerCount = computer ? 2 : Number(els.playerCount.value);
+    const handSize = playerCount === 2 ? 10 : 7;
+    state = { stock: deck, discard: [deck.pop()], hands: Array.from({ length: playerCount }, () => []), active: 0, drawn: false, selected: null, computer, playerCount, scores: Array(playerCount).fill(0), result: null, aiPending: false, revealedPlayer: 0, lastActive: 0 };
+    for (let round = 0; round < handSize; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.stock.pop());
+    els.playerCount.disabled = computer;
     render();
     scheduleAI();
   }
 
   function drawFromStock() {
-    if (state.result || state.active !== 0 || state.drawn) return;
+    if (state.result || !canAct() || state.drawn) return;
     recycleStock();
     if (!state.stock.length) return;
-    state.hands[0].push(state.stock.pop()); state.drawn = true; state.selected = null; render();
+    state.hands[state.active].push(state.stock.pop()); state.drawn = true; state.selected = null; render();
   }
 
   function drawFromDiscard() {
-    if (state.result || state.active !== 0 || state.drawn || !state.discard.length) return;
-    state.hands[0].push(state.discard.pop()); state.drawn = true; state.selected = null; render();
+    if (state.result || !canAct() || state.drawn || !state.discard.length) return;
+    state.hands[state.active].push(state.discard.pop()); state.drawn = true; state.selected = null; render();
   }
 
   function selectCard(index) {
-    if (state.result || state.active !== 0 || !state.drawn) return;
+    if (state.result || !canAct() || !state.drawn) return;
     state.selected = state.selected === index ? null : index; render();
   }
 
   function roundResult(knocker, knockerHand) {
-    const opponent = knocker === 0 ? 1 : 0;
+    const opponent = (knocker + 1) % state.playerCount;
     const knockDeadwood = deadwood(knockerHand);
     const opponentDeadwood = deadwood(state.hands[opponent]);
     if (knockDeadwood === 0) { state.scores[knocker] += opponentDeadwood + 25; state.result = { winner: knocker, text: "Gin! Player " + (knocker + 1) + " scores " + (opponentDeadwood + 25) + "." }; return; }
@@ -107,12 +119,13 @@
   }
 
   function discard(index, knock) {
-    if (state.result || state.active !== 0 || !state.drawn || index === null || index === undefined) return;
-    const hand = state.hands[0].slice(); hand.splice(index, 1);
+    if (state.result || !canAct() || !state.drawn || index === null || index === undefined) return;
+    const player = state.active;
+    const hand = state.hands[player].slice(); hand.splice(index, 1);
     if (knock && deadwood(hand) > 10) return;
-    state.discard.push(state.hands[0].splice(index, 1)[0]); state.drawn = false; state.selected = null;
-    if (knock) roundResult(0, state.hands[0]);
-    else { state.active = 1; scheduleAI(); }
+    state.discard.push(state.hands[player].splice(index, 1)[0]); state.drawn = false; state.selected = null;
+    if (knock) roundResult(player, state.hands[player]);
+    else { state.active = (player + 1) % state.playerCount; scheduleAI(); }
     render();
   }
 
@@ -160,30 +173,36 @@
   }
 
   function render() {
+    resetReveal();
     els.hands.textContent = "";
     state.hands.forEach((hand, player) => {
       const box = document.createElement("div"); box.className = "player-box";
       const heading = document.createElement("h3"); heading.textContent = "Player " + (player + 1) + (state.active === player && !state.result ? " · active" : "") + (player === 1 && state.computer ? " · computer" : ""); box.appendChild(heading);
       const row = document.createElement("div"); row.className = "card-row";
-      hand.forEach((card, index) => row.appendChild(cardButton(card, player === 0 && state.active === 0 && state.drawn && !state.result, state.selected === index, () => selectCard(index), player === 1 && state.computer)));
+      hand.forEach((card, index) => row.appendChild(cardButton(card, player === state.active && canAct() && state.drawn, state.selected === index, () => selectCard(index), !handVisible(player))));
       box.appendChild(row); els.hands.appendChild(box);
     });
     const top = state.discard[state.discard.length - 1];
-    els.status.textContent = state.result ? state.result.text : (state.active === 0 ? (state.drawn ? "Select a discard, then end the turn or knock." : "Your turn: draw a card.") : "Computer is thinking…");
+    els.status.textContent = state.result ? state.result.text : (state.computer && state.active === 1 ? "Computer is thinking…" : (canAct() ? (state.drawn ? "Select a discard, then end the turn or knock." : "Your turn: draw a card.") : "Pass the device to Player " + (state.active + 1) + "."));
     els.stock.textContent = String(state.stock.length); els.discard.textContent = top ? cardText(top) : "—";
     els.count1.textContent = state.hands[0].length + " cards · " + state.scores[0] + " points";
     els.count2.textContent = (state.computer ? "Computer" : "Player 2") + " · " + state.hands[1].length + " cards · " + state.scores[1] + " points";
-    const selectedHand = state.selected === null ? null : state.hands[0].slice();
+    const selectedHand = state.selected === null ? null : state.hands[state.active].slice();
     if (selectedHand) selectedHand.splice(state.selected, 1);
     const canKnock = Boolean(selectedHand && deadwood(selectedHand) <= 10);
-    els.draw.disabled = Boolean(state.result) || state.active !== 0 || state.drawn || !state.stock.length;
-    els.drawDiscard.disabled = Boolean(state.result) || state.active !== 0 || state.drawn || !state.discard.length;
-    els.discardCard.disabled = Boolean(state.result) || state.active !== 0 || !state.drawn || state.selected === null;
-    els.knock.disabled = !canKnock;
+    els.draw.disabled = !canAct() || state.drawn || !state.stock.length;
+    els.drawDiscard.disabled = !canAct() || state.drawn || !state.discard.length;
+    els.discardCard.disabled = !canAct() || !state.drawn || state.selected === null;
+    els.knock.disabled = !canAct() || !canKnock;
+    els.passPanel.hidden = state.computer || state.result !== null || handVisible(state.active);
+    els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
+    els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
     els.note.textContent = state.result ? "Start a new deal to test another knock or gin." : "Knock is allowed when the discarded hand has 10 or fewer deadwood points. A zero-deadwood hand scores gin.";
   }
 
-  els.mode.addEventListener("change", () => { if (state) { state.computer = els.mode.checked; if (!state.computer) state.aiPending = false; render(); scheduleAI(); } });
+  els.mode.addEventListener("change", () => { newGame(); });
+  els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
+  els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame);
   els.draw.addEventListener("click", drawFromStock); els.drawDiscard.addEventListener("click", drawFromDiscard);
   els.discardCard.addEventListener("click", () => discard(state.selected, false)); els.knock.addEventListener("click", () => discard(state.selected, true));

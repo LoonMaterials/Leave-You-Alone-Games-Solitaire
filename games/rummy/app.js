@@ -9,9 +9,17 @@
     status: document.getElementById("status"), hands: document.getElementById("hands"), stock: document.getElementById("stock-count"),
     discard: document.getElementById("discard-top"), count1: document.getElementById("count-1"), count2: document.getElementById("count-2"),
     draw: document.getElementById("draw-card"), drawDiscard: document.getElementById("draw-discard"), discardCard: document.getElementById("discard-card"),
-    mode: document.getElementById("computer-mode"), note: document.getElementById("turn-note")
+    mode: document.getElementById("computer-mode"), playerCount: document.getElementById("player-count"),
+    passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note")
   };
   let state;
+
+  function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
+  function canAct() { return state.winner === null && (!state.computer || state.active === 0) && handVisible(state.active); }
+  function resetReveal() {
+    if (state.lastActive !== state.active) { state.lastActive = state.active; state.revealedPlayer = state.computer ? 0 : -1; }
+  }
+  function showActiveHand() { if (!state.computer) { state.revealedPlayer = state.active; render(); } }
 
   function makeDeck() {
     const deck = [];
@@ -78,52 +86,53 @@
 
   function newGame() {
     const deck = shuffle(makeDeck());
-    state = { stock: deck, discard: [deck.pop()], hands: [[], []], active: 0, drawn: false, selected: null, computer: els.mode.checked, winner: null, score: [0, 0], aiPending: false };
-    for (let round = 0; round < 10; round += 1) {
-      state.hands[0].push(state.stock.pop());
-      state.hands[1].push(state.stock.pop());
-    }
+    const computer = els.mode.checked;
+    const playerCount = computer ? 2 : Number(els.playerCount.value);
+    const handSize = playerCount === 2 ? 10 : 7;
+    state = { stock: deck, discard: [deck.pop()], hands: Array.from({ length: playerCount }, () => []), active: 0, drawn: false, selected: null, computer, playerCount, winner: null, score: Array(playerCount).fill(0), aiPending: false, revealedPlayer: 0, lastActive: 0 };
+    for (let round = 0; round < handSize; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.stock.pop());
+    els.playerCount.disabled = computer;
     render();
     scheduleAI();
   }
 
   function drawFromStock() {
-    if (state.winner !== null || state.active !== 0 || state.drawn) return;
+    if (state.winner !== null || !canAct() || state.drawn) return;
     recycleStock();
     if (!state.stock.length) return;
-    state.hands[0].push(state.stock.pop());
+    state.hands[state.active].push(state.stock.pop());
     state.drawn = true;
     state.selected = null;
     render();
   }
 
   function drawFromDiscard() {
-    if (state.winner !== null || state.active !== 0 || state.drawn || state.discard.length === 0) return;
-    state.hands[0].push(state.discard.pop());
+    if (state.winner !== null || !canAct() || state.drawn || state.discard.length === 0) return;
+    state.hands[state.active].push(state.discard.pop());
     state.drawn = true;
     state.selected = null;
     render();
   }
 
   function selectCard(index) {
-    if (state.active !== 0 || !state.drawn || state.winner !== null) return;
+    if (!canAct() || !state.drawn) return;
     state.selected = state.selected === index ? null : index;
     render();
   }
 
   function finishRound(winner) {
     state.winner = winner;
-    const loser = winner === 0 ? 1 : 0;
-    state.score[winner] += deadwood(state.hands[loser]);
+    state.score[winner] += state.hands.reduce((total, hand, player) => total + (player === winner ? 0 : deadwood(hand)), 0);
   }
 
   function discard(index) {
-    if (state.winner !== null || state.active !== 0 || !state.drawn || index === null || index === undefined) return;
-    state.discard.push(state.hands[0].splice(index, 1)[0]);
+    if (state.winner !== null || !canAct() || !state.drawn || index === null || index === undefined) return;
+    const player = state.active;
+    state.discard.push(state.hands[player].splice(index, 1)[0]);
     state.drawn = false;
     state.selected = null;
-    if (handIsMeldable(state.hands[0])) finishRound(0);
-    else { state.active = 1; scheduleAI(); }
+    if (handIsMeldable(state.hands[player])) finishRound(player);
+    else { state.active = (player + 1) % state.playerCount; scheduleAI(); }
     render();
   }
 
@@ -179,6 +188,7 @@
   }
 
   function render() {
+    resetReveal();
     els.hands.textContent = "";
     state.hands.forEach((hand, player) => {
       const box = document.createElement("div");
@@ -188,23 +198,28 @@
       box.appendChild(heading);
       const row = document.createElement("div");
       row.className = "card-row";
-      hand.forEach((card, index) => row.appendChild(cardButton(card, player === 0 && state.active === 0 && state.drawn && state.winner === null, state.selected === index, () => selectCard(index), player === 1 && state.computer)));
+      hand.forEach((card, index) => row.appendChild(cardButton(card, player === state.active && canAct() && state.drawn, state.selected === index, () => selectCard(index), !handVisible(player))));
       box.appendChild(row);
       els.hands.appendChild(box);
     });
     const top = state.discard[state.discard.length - 1];
-    els.status.textContent = state.winner === null ? (state.active === 0 ? (state.drawn ? "Select a card to discard." : "Your turn: draw a card.") : "Computer is thinking…") : "Player " + (state.winner + 1) + " wins the deal.";
+    els.status.textContent = state.winner === null ? (state.computer && state.active === 1 ? "Computer is thinking…" : (canAct() ? (state.drawn ? "Select a card to discard." : "Your turn: draw a card.") : "Pass the device to Player " + (state.active + 1) + ".")) : "Player " + (state.winner + 1) + " wins the deal.";
     els.stock.textContent = String(state.stock.length);
     els.discard.textContent = top ? cardText(top) : "—";
     els.count1.textContent = state.hands[0].length + " cards · " + state.score[0] + " points";
     els.count2.textContent = (state.computer ? "Computer" : "Player 2") + " · " + state.hands[1].length + " cards · " + state.score[1] + " points";
-    els.draw.disabled = state.winner !== null || state.active !== 0 || state.drawn || !state.stock.length;
-    els.drawDiscard.disabled = state.winner !== null || state.active !== 0 || state.drawn || !state.discard.length;
-    els.discardCard.disabled = state.winner !== null || state.active !== 0 || !state.drawn || state.selected === null;
+    els.draw.disabled = !canAct() || state.drawn || !state.stock.length;
+    els.drawDiscard.disabled = !canAct() || state.drawn || !state.discard.length;
+    els.discardCard.disabled = !canAct() || !state.drawn || state.selected === null;
+    els.passPanel.hidden = state.computer || state.winner !== null || handVisible(state.active);
+    els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
+    els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
     els.note.textContent = state.winner === null ? "Melds are sets of three or four equal ranks, or runs of three or more cards in one suit. The computer chooses draws and discards by improving its melds." : "Start a new deal to test another hand.";
   }
 
-  els.mode.addEventListener("change", () => { if (state) { state.computer = els.mode.checked; if (!state.computer) state.aiPending = false; render(); scheduleAI(); } });
+  els.mode.addEventListener("change", () => { newGame(); });
+  els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
+  els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame);
   els.draw.addEventListener("click", drawFromStock);
   els.drawDiscard.addEventListener("click", drawFromDiscard);

@@ -15,12 +15,13 @@
     <main class="game-shell">
       <header class="topbar">
         <div><h1>Hearts</h1><p>Local Hearts · follow suit, broken hearts, scoring, and computer players</p></div>
-        <div class="actions"><span id="status" class="status" aria-live="polite"></span><label><input id="computer-mode" type="checkbox" checked> Play against computer</label><a class="button-link" href="../../index.html">Main Menu</a><button id="new-game" type="button">New Deal</button></div>
+        <div class="actions"><span id="status" class="status" aria-live="polite"></span><label><input id="computer-mode" type="checkbox" checked> Play against computer</label><label>Players <select id="player-count"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></label><a class="button-link" href="../../index.html">Main Menu</a><button id="new-game" type="button">New Deal</button></div>
       </header>
       <section class="scorebar" id="scorebar"></section>
       <section class="panel"><div class="panel-heading"><h2>Current trick</h2><button id="finish-trick" type="button" disabled>Collect trick</button></div><div id="trick" class="trick"></div><p id="note" class="note">The player with the 2♣ leads. Follow suit, avoid points on the first trick, and keep hearts unbroken until necessary.</p></section>
+      <section id="pass-panel" class="panel pass-panel" hidden><strong id="pass-title"></strong><button id="show-hand" type="button">Show this player's cards</button></section>
       <section class="panel"><div class="panel-heading"><h2>Hands</h2><span>Player 1 is human when computer mode is on.</span></div><div id="hands" class="players"></div></section>
     </main>
-    <script src="app.js?v=20260808-rules-1"></script>
+    <script src="app.js?v=20260808-privacy-1"></script>
   </body>
 </html>

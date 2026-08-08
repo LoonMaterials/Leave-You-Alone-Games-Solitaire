@@ -21,6 +21,7 @@
         <div class="actions">
           <span id="status" class="status" aria-live="polite"></span>
           <label><input id="computer-mode" type="checkbox" checked> Play against computer</label>
+          <label>Players <select id="player-count"><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label>
           <a class="button-link" href="../../index.html">Main Menu</a>
           <button id="new-game" type="button">New Deal</button>
         </div>
@@ -38,6 +39,7 @@
         </div>
         <div id="hands" class="players"></div>
       </section>
+      <section id="pass-panel" class="panel pass-panel" hidden><strong id="pass-title"></strong><button id="show-hand" type="button">Show this player's cards</button></section>
       <section class="panel">
         <div class="panel-heading">
           <h2>Crib and starter</h2>
@@ -48,6 +50,6 @@
         <p id="note" class="note">Choose two cards for the crib. The computer will choose its two cards automatically.</p>
       </section>
     </main>
-    <script src="app.js?v=20260808-rules-1"></script>
+    <script src="app.js?v=20260808-privacy-1"></script>
   </body>
 </html>
