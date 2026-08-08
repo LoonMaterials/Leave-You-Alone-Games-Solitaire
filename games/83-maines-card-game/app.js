@@ -36,7 +36,9 @@
     resultTitle: document.getElementById("result-title"),
     roundResult: document.getElementById("round-result"),
     nextDeal: document.getElementById("next-deal"),
-    newRound: document.getElementById("new-round")
+    newMatch: document.getElementById("new-match"),
+    newRound: document.getElementById("new-round"),
+    mode: document.getElementById("computer-mode")
   };
   let state = null;
 
@@ -59,6 +61,10 @@
 
   function teamOf(player) {
     return player % 2;
+  }
+
+  function isHuman(player) {
+    return !state.computer || player === 0;
   }
 
   function playerName(player) {
@@ -124,9 +130,13 @@
       teamTricks: [0, 0],
       lastTrick: null,
       roundResult: null,
-      error: ""
+      error: "",
+      computer: els.mode.checked,
+      aiPending: false,
+      finishPending: false
     };
     render();
+    scheduleAI();
   }
 
   function startMatch() {
@@ -294,7 +304,7 @@
       return trumps.length ? trumps : hand;
     }
     const ledSuit = hand.filter((card) => card.suit === lead.suit && !isTrump(card, state.trump));
-    if (ledSuit.length) return ledSuit.concat(hand.filter((card) => isTrump(card, state.trump)));
+    if (ledSuit.length) return ledSuit;
     return hand;
   }
 
@@ -306,6 +316,7 @@
     if (state.trick.length < 4) state.active = (state.active + 1) % 4;
     state.error = "";
     render();
+    if (state.trick.length === 4) scheduleFinish();
   }
 
   function trickWinner(trick) {
@@ -343,6 +354,85 @@
     render();
   }
 
+  function aiBidEstimate(hand) {
+    let best = 30;
+    SUITS.forEach((suit) => {
+      const trumps = hand.filter((card) => isTrump(card, suit));
+      const strength = trumps.reduce((total, card) => total + (trumpWeight(card, suit) >= 12 ? 4 : trumpWeight(card, suit) >= 9 ? 2 : 0) + pointValue(card, suit) / 8, 0);
+      best = Math.max(best, Math.min(83, 30 + Math.floor(strength)));
+    });
+    return best;
+  }
+
+  function aiAuction() {
+    if (state.phase !== "auction" || isHuman(state.active)) return;
+    const estimate = aiBidEstimate(state.hands[state.active]);
+    if (state.highest && state.highest.bidder === state.active) passBid();
+    else if (!state.highest || estimate > state.highest.value) {
+      els.bidValue.value = String(Math.max(30, Math.min(83, state.highest ? state.highest.value + 1 : estimate)));
+      submitBid();
+    } else passBid();
+  }
+
+  function aiTrump() {
+    if (state.phase !== "trump" || isHuman(state.active)) return;
+    let choice = SUITS[0];
+    let best = -1;
+    SUITS.forEach((suit) => {
+      const value = state.hands[state.highest.bidder].filter((card) => isTrump(card, suit)).reduce((total, card) => total + trumpWeight(card, suit) + pointValue(card, suit), 0);
+      if (value > best) { best = value; choice = suit; }
+    });
+    chooseTrump(choice);
+  }
+
+  function aiDiscard() {
+    if (state.phase !== "discard" || isHuman(state.active)) return;
+    const player = state.active;
+    const need = discardNeed(player);
+    if (!need) { advanceDiscard(); render(); return; }
+    const hand = state.hands[player];
+    if (!safeDiscardAvailable(hand)) {
+      const trumps = hand.filter((card) => isTrump(card, state.trump)).sort((a, b) => pointValue(a, state.trump) - pointValue(b, state.trump) || trumpWeight(a, state.trump) - trumpWeight(b, state.trump));
+      state.selected = trumps.slice(0, need).map((card) => card.id);
+      if (canPassTrumps()) { passTrumps(); return; }
+    }
+    const discardable = safeDiscardAvailable(hand) ? hand.filter((card) => !isScoringTrump(card)) : hand.slice();
+    state.selected = discardable.sort((a, b) => pointValue(a, state.trump) - pointValue(b, state.trump) || trumpWeight(a, state.trump) - trumpWeight(b, state.trump) || plainWeight(a) - plainWeight(b)).slice(0, need).map((card) => card.id);
+    confirmDiscard();
+  }
+
+  function aiPlay() {
+    if (state.phase !== "play" || isHuman(state.active)) return;
+    const player = state.active;
+    const legal = legalCards(player).slice();
+    const partner = state.trick.length ? trickWinner(state.trick).player : -1;
+    legal.sort((a, b) => {
+      const aValue = pointValue(a, state.trump) * 10 + trumpWeight(a, state.trump);
+      const bValue = pointValue(b, state.trump) * 10 + trumpWeight(b, state.trump);
+      return (partner === teamOf(player) ? aValue - bValue : aValue - bValue) || plainWeight(a) - plainWeight(b);
+    });
+    if (legal.length) playCard({ id: legal[0].id, player });
+  }
+
+  function scheduleFinish() {
+    if (state.finishPending) return;
+    state.finishPending = true;
+    window.setTimeout(() => { state.finishPending = false; finishTrick(); }, 550);
+  }
+
+  function scheduleAI() {
+    if (!state || !state.computer || state.aiPending || isHuman(state.active) || state.phase === "round-over" || state.phase === "game-over") return;
+    state.aiPending = true;
+    window.setTimeout(() => {
+      state.aiPending = false;
+      if (!state || !state.computer || isHuman(state.active)) return;
+      if (state.phase === "auction") aiAuction();
+      else if (state.phase === "trump") aiTrump();
+      else if (state.phase === "discard") aiDiscard();
+      else if (state.phase === "play") aiPlay();
+    }, 300);
+  }
+
   function setTheme() {
     try {
       const theme = localStorage.getItem("leave-me-alone-games-theme");
@@ -352,11 +442,11 @@
     }
   }
 
-  function cardButton(card, enabled, selected, onClick) {
+  function cardButton(card, enabled, selected, onClick, hidden) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "playing-card" + (card.suit === "H" || card.suit === "D" ? " red" : "") + (selected ? " selected" : "");
-    button.textContent = cardText(card);
+    button.textContent = hidden ? "🂠" : cardText(card);
     button.title = cardLongText(card);
     button.disabled = !enabled;
     if (onClick) button.addEventListener("click", onClick);
@@ -376,11 +466,11 @@
       const discardSafe = state.phase === "discard" && safeDiscardAvailable(hand);
       const legal = state.phase === "play" && state.active === player ? new Set(legalCards(player).map((card) => card.id)) : new Set();
       hand.forEach((card) => {
-        const discardEnabled = state.phase === "discard" && state.active === player && discardNeed(player) > 0;
-        const playEnabled = state.phase === "play" && state.active === player && legal.has(card.id);
+        const discardEnabled = state.phase === "discard" && state.active === player && isHuman(player) && discardNeed(player) > 0;
+        const playEnabled = state.phase === "play" && state.active === player && isHuman(player) && legal.has(card.id);
         const enabled = discardEnabled || playEnabled;
         const handler = state.phase === "discard" ? () => toggleDiscard({ id: card.id, player }) : () => playCard({ id: card.id, player });
-        const button = cardButton(card, enabled, state.selected.includes(card.id), enabled ? handler : null);
+        const button = cardButton(card, enabled, state.selected.includes(card.id), enabled ? handler : null, state.computer && player !== 0);
         if (state.phase === "discard" && discardSafe && isScoringTrump(card)) button.classList.add("protected");
         row.appendChild(button);
       });
@@ -408,10 +498,11 @@
       line.textContent = entry;
       els.bidHistory.appendChild(line);
     });
-    els.bidButton.disabled = state.phase !== "auction";
-    els.passButton.disabled = state.phase !== "auction";
-    els.bidValue.disabled = state.phase !== "auction";
-    els.doubleButton.disabled = state.phase !== "auction" || !state.highest || state.highest.value !== 83 || state.highest.doubled;
+    const humanTurn = state.phase === "auction" && isHuman(state.active);
+    els.bidButton.disabled = !humanTurn;
+    els.passButton.disabled = !humanTurn;
+    els.bidValue.disabled = !humanTurn;
+    els.doubleButton.disabled = !humanTurn || !state.highest || state.highest.value !== 83 || state.highest.doubled;
   }
 
   function renderTrump() {
@@ -421,6 +512,7 @@
       button.type = "button";
       button.className = "suit-button " + suit;
       button.textContent = SUIT_SYMBOLS[suit] + " " + SUIT_NAMES[suit];
+      button.disabled = !isHuman(state.highest.bidder);
       button.addEventListener("click", () => chooseTrump(suit));
       els.suitChoices.appendChild(button);
     });
@@ -433,8 +525,8 @@
   function renderDiscard() {
     const need = discardNeed(state.active);
     els.discardPrompt.textContent = playerName(state.active) + " must discard " + need + " card" + (need === 1 ? "" : "s") + ".";
-    els.discardButton.disabled = state.phase !== "discard" || state.selected.length !== need;
-    els.passTrumps.disabled = state.phase !== "discard" || !canPassTrumps();
+    els.discardButton.disabled = state.phase !== "discard" || !isHuman(state.active) || state.selected.length !== need;
+    els.passTrumps.disabled = state.phase !== "discard" || !isHuman(state.active) || !canPassTrumps();
     els.discardNote.textContent = state.error || (safeDiscardAvailable(state.hands[state.active]) ? "Scoring trumps are protected. Select non-scoring cards, or pass selected trumps to your partner." : "This hand has more than six scoring trumps; pass excess trumps to your partner before discarding.");
   }
 
@@ -490,8 +582,15 @@
     if (play) renderTrick();
     renderHands();
     renderResult();
+    scheduleAI();
   }
 
+  els.mode.addEventListener("change", () => {
+    if (!state) return;
+    state.computer = els.mode.checked;
+    if (!state.computer) state.aiPending = false;
+    render();
+  });
   els.bidButton.addEventListener("click", submitBid);
   els.doubleButton.addEventListener("click", submitDouble);
   els.passButton.addEventListener("click", passBid);

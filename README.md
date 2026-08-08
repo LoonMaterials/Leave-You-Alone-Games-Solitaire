@@ -15,11 +15,11 @@ The app is designed for mobile-first play with no ads, accounts, tracking, analy
 - Tri-Peaks Solitaire: `games/tripeaks/`
 - Golf Solitaire: `games/golf/`
 - Yukon Solitaire: `games/yukon/`
-- Rummy: `games/rummy/` (basic local build)
-- Gin Rummy: `games/gin-rummy/` (basic local build)
-- Hearts: `games/hearts/` (basic local build)
-- Spades: `games/spades/` (basic local build)
-- 83-Maine's Card Game: `games/83-maines-card-game/` (local rule build)
+- Rummy: `games/rummy/` (initial meld and computer-play build)
+- Gin Rummy: `games/gin-rummy/` (initial meld, knock, and computer-play build)
+- Hearts: `games/hearts/` (initial legal-trick and scoring build)
+- Spades: `games/spades/` (initial bidding, legal-trick, and scoring build)
+- 83-Maine's Card Game: `games/83-maines-card-game/` (initial auction, partnership, and trick AI build)
 
 ### Board Games
 
@@ -31,7 +31,7 @@ The app is designed for mobile-first play with no ads, accounts, tracking, analy
 - Backgammon: `games/backgammon-classic/`
 - Connect 4: `games/connect4/`
 - Tic-Tac-Toe: `games/tic-tac-toe/`
-- Cribbage: `games/cribbage/` (basic local build)
+- Cribbage: `games/cribbage/` (initial crib, pegging, scoring, and computer-play build)
 
 ### Dice and Puzzle Games
 
@@ -80,6 +80,9 @@ See [PRIVACY.md](PRIVACY.md) for the full privacy statement.
 Open `index.html` in a browser.
 
 For phone testing, serve the folder with a static web server and open the served site from the phone.
+
+Run `npm run test:games` for the standalone new-game smoke checks. These checks
+validate each game's local files, syntax, launcher entry, and core rule/AI hooks.
 
 ## Build For iOS
 

@@ -24,20 +24,22 @@ Ready:
 - Tri-Peaks Solitaire
 - Golf Solitaire
 - Yukon Solitaire
-- Rummy (basic local build)
-- Gin Rummy (basic local build)
-- Hearts (basic local build)
-- Spades (basic local build)
-- 83-Maine's Card Game (local pass-and-play rule build)
-- Cribbage (basic local build)
+- Rummy (initial meld and computer-play build)
+- Gin Rummy (initial meld, knock, and computer-play build)
+- Hearts (initial legal-trick and scoring build)
+- Spades (initial bidding, legal-trick, and scoring build)
+- 83-Maine's Card Game (initial auction, partnership, and trick AI build)
+- Cribbage (initial crib, pegging, scoring, and computer-play build)
 - Per-game controls and persistence
 - Local/session persistence
 
-Rummy, Gin Rummy, Hearts, and Spades are intentionally first-pass builds. Their
-folders, launch pages, card/turn scaffolding, and basic local interactions are
-present; full rules, scoring, suit-following, and computer or partner AI remain
-later development work. 83-Maine's Card Game has the core Maine rule flow for
-local pass-and-play, while AI partnerships and deeper rule-variant testing remain.
+The six newest games now have first playable rules and computer behavior for
+testing: meld detection and deadwood/knock scoring for Rummy and Gin Rummy;
+follow-suit, hearts-breaking, bidding, trick, and deal scoring for Hearts and
+Spades; the auction, kitty/discard, partnership trick flow, and contract scoring
+for 83; and crib selection, pegging, hand scoring, and a computer opponent for
+Cribbage. Advanced strategy, rule variants, passing conventions, and broad
+probabilistic AI testing remain later work.
 
 Needs before store submission:
 

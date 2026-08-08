@@ -16,10 +16,11 @@
       <header class="topbar">
         <div>
           <h1>Cribbage</h1>
-          <p>Basic local build · crib selection first</p>
+          <p>Local cribbage · crib selection, pegging, scoring, and a basic computer opponent</p>
         </div>
         <div class="actions">
           <span id="status" class="status" aria-live="polite"></span>
+          <label><input id="computer-mode" type="checkbox" checked> Play against computer</label>
           <a class="button-link" href="../../index.html">Main Menu</a>
           <button id="new-game" type="button">New Deal</button>
         </div>
@@ -28,6 +29,7 @@
         <div><span>Player 1</span><strong id="score-1">0</strong></div>
         <div><span>Crib</span><strong id="crib-count">0 / 4</strong></div>
         <div><span>Player 2</span><strong id="score-2">0</strong></div>
+        <div><span>Pegging count</span><strong id="peg-count">0 / 31</strong></div>
       </section>
       <section class="panel">
         <div class="panel-heading">
@@ -39,12 +41,13 @@
       <section class="panel">
         <div class="panel-heading">
           <h2>Crib and starter</h2>
-          <button id="next-phase" type="button" hidden>Begin basic pegging</button>
+          <button id="next-phase" type="button" hidden>Begin pegging</button>
+          <button id="go-button" type="button" hidden>Go</button>
         </div>
         <div id="crib" class="card-row"></div>
-        <p id="note" class="note">Full pegging and scoring will be added in a later pass.</p>
+        <p id="note" class="note">Choose two cards for the crib. The computer will choose its two cards automatically.</p>
       </section>
     </main>
-    <script src="app.js?v=20260804-base-1"></script>
+    <script src="app.js?v=20260808-rules-1"></script>
   </body>
 </html>

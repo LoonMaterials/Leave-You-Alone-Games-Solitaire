@@ -6,6 +6,7 @@
   "scripts": {
     "postinstall": "node scripts/build-www.js",
     "build": "node scripts/build-www.js",
+    "test:games": "node scripts/test-new-games.js",
     "prepare:web": "node scripts/build-www.js",
     "prepare:ios": "npm run prepare:web",
     "prepare:android": "npm run prepare:web",
