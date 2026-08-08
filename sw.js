@@ -1,4 +1,4 @@
-const CACHE_NAME = "leave-me-alone-games-v91";
+const CACHE_NAME = "leave-me-alone-games-v92";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -90,7 +90,7 @@ const APP_SHELL = [
   "./games/83-maines-card-game/",
   "./games/83-maines-card-game/index.html",
   "./games/83-maines-card-game/styles.css?v=20260804-83-1",
-  "./games/83-maines-card-game/app.js?v=20260808-83-ai-1",
+  "./games/83-maines-card-game/app.js?v=20260808-83-rules-2",
   "./games/yacht/",
   "./games/yacht/index.html",
   "./games/yacht/styles.css?v=20260713-themes-1",

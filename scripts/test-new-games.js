@@ -9,7 +9,7 @@ const games = {
   "gin-rummy": ["bestPartition", "roundResult", "scheduleAI"],
   "hearts": ["legalCards", "trickWinner", "scheduleAI"],
   "spades": ["legalCards", "trickWinner", "scheduleAI"],
-  "83-maines-card-game": ["legalCards", "aiAuction", "aiPlay", "scheduleAI"]
+  "83-maines-card-game": ["legalCards", "evaluateTrump", "bestTrumpPlan", "aiAuction", "aiDiscard", "aiPlay", "handVisible", "scheduleAI"]
 };
 const passAndPlayGames = new Set(["cribbage", "rummy", "gin-rummy", "hearts", "spades"]);
 
@@ -26,6 +26,9 @@ for (const [game, markers] of Object.entries(games)) {
   const source = fs.readFileSync(path.join(folder, "app.js"), "utf8");
   if (!html.includes('src="app.js')) fail(`${game} does not load its local app.js`);
   if (!html.includes('id="computer-mode"')) fail(`${game} is missing computer-mode control`);
+  if (game === "83-maines-card-game") {
+    for (const id of ["pass-panel", "show-hand"]) if (!html.includes(`id="${id}"`)) fail(`${game} is missing ${id} privacy control`);
+  }
   if (passAndPlayGames.has(game)) {
     for (const id of ["player-count", "pass-panel", "show-hand"]) if (!html.includes(`id="${id}"`)) fail(`${game} is missing ${id} pass-and-play control`);
     for (const marker of ["handVisible", "showActiveHand"]) if (!source.includes(`function ${marker}`)) fail(`${game} is missing ${marker}()`);
