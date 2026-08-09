@@ -62,7 +62,12 @@
     }
     const ledSuit = state.trick[0].card.suit;
     const suited = hand.filter((card) => card.suit === ledSuit);
-    return suited.length ? suited : hand.slice();
+    if (suited.length) return suited;
+    if (state.trickCount === 0) {
+      const nonPoints = hand.filter((card) => points(card) === 0);
+      if (nonPoints.length) return nonPoints;
+    }
+    return hand.slice();
   }
 
   function trickWinner(trick) {
@@ -118,7 +123,8 @@
     state.trick = [];
     state.trickCount += 1;
     if (state.hands.every((hand) => hand.length === 0)) {
-      if (state.scores[winner.player] === 26) { state.scores = state.scores.map((score, player) => player === winner.player ? 0 : score + 26); }
+      const shooter = state.scores.findIndex((score) => score === 26);
+      if (shooter >= 0) state.scores = state.scores.map((score, player) => player === shooter ? 0 : score + 26);
       state.complete = true;
     } else { state.active = winner.player; }
     render();

@@ -35,13 +35,7 @@
     const handSize = Math.floor(52 / playerCount);
     state = { hands: Array.from({ length: playerCount }, () => []), playerCount, active: 0, bids: Array(playerCount).fill(null), trick: [], tricks: Array(playerCount).fill(0), scores: Array(computer ? 2 : playerCount).fill(0), phase: "bid", spadesBroken: false, complete: false, result: "", computer, finishPending: false, aiPending: false, revealedPlayer: 0, lastActive: 0 };
     for (let round = 0; round < handSize; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(deck.pop());
-    if (computer) state.active = 0;
-    else {
-      const owner = state.hands.findIndex((hand) => hand.some((card) => card.id === "C2"));
-      const index = owner < 0 ? -1 : state.hands[owner].findIndex((card) => card.id === "C2");
-      if (owner < 0) { const leftover = deck.findIndex((card) => card.id === "C2"); state.hands[0][0] = deck.splice(leftover, 1)[0]; }
-      else [state.hands[0][0], state.hands[owner][index]] = [state.hands[owner][index], state.hands[0][0]];
-    }
+    state.active = 0;
     els.playerCount.disabled = computer;
     render(); scheduleAI();
   }
@@ -52,17 +46,13 @@
     if (!Number.isFinite(bid)) return;
     state.bids[state.active] = bid;
     state.active += 1;
-    if (state.active === state.playerCount) { state.phase = "play"; state.active = state.computer ? state.hands.findIndex((hand) => hand.some((card) => card.id === "C2")) : 0; }
+    if (state.active === state.playerCount) { state.phase = "play"; state.active = 0; }
     els.bid.value = "0"; render(); scheduleAI();
   }
 
   function legalCards(player) {
     const hand = state.hands[player];
     if (!state.trick.length) {
-      if (state.tricks.every((count) => count === 0)) {
-        const twoClubs = hand.filter((card) => card.id === "C2");
-        if (twoClubs.length) return twoClubs;
-      }
       const nonSpades = hand.filter((card) => !isSpade(card));
       return !state.spadesBroken && nonSpades.length ? nonSpades : hand.slice();
     }
@@ -110,7 +100,7 @@
 
   function submitAIBid(player) {
     state.bids[player] = bidEstimate(state.hands[player]); state.active += 1;
-    if (state.active === state.playerCount) { state.phase = "play"; state.active = state.computer ? state.hands.findIndex((hand) => hand.some((card) => card.id === "C2")) : 0; }
+    if (state.active === state.playerCount) { state.phase = "play"; state.active = 0; }
     render(); scheduleAI();
   }
 

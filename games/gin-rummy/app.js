@@ -37,12 +37,13 @@
 
   function cardText(card) { return RANKS[card.rank] + SYMBOLS[card.suit]; }
   function isRed(card) { return card.suit === "H" || card.suit === "D"; }
-  function cardValue(card) { return Math.min(10, card.rank === 14 ? 10 : card.rank); }
+  function cardValue(card) { return card.rank === 14 ? 1 : Math.min(10, card.rank); }
+  function runRank(card) { return card.rank === 14 ? 1 : card.rank; }
   function isSet(cards) { return cards.length >= 3 && cards.length <= 4 && cards.every((card) => card.rank === cards[0].rank); }
   function isRun(cards) {
     if (cards.length < 3) return false;
-    const ordered = cards.slice().sort((a, b) => a.rank - b.rank);
-    return ordered.every((card, index) => card.suit === ordered[0].suit && (index === 0 || card.rank === ordered[index - 1].rank + 1));
+    const ordered = cards.slice().sort((a, b) => runRank(a) - runRank(b));
+    return ordered.every((card, index) => card.suit === ordered[0].suit && (index === 0 || runRank(card) === runRank(ordered[index - 1]) + 1));
   }
   function isMeld(cards) { return isSet(cards) || isRun(cards); }
 

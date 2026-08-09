@@ -45,12 +45,12 @@
       if (chosen.reduce((sum, card) => sum + value(card), 0) === 15) points += 2;
     }
     for (let rank = 2; rank <= 14; rank += 1) { const count = cards.filter((card) => card.rank === rank).length; if (count >= 2) points += count === 2 ? 2 : count === 3 ? 6 : 12; }
-    for (let length = 5; length >= 3; length -= 1) {
+    for (let length = cards.length; length >= 3; length -= 1) {
       let runPoints = 0;
       for (let mask = 1; mask < (1 << cards.length); mask += 1) {
         const chosen = cards.filter((_, index) => mask & (1 << index)); if (chosen.length !== length) continue;
         const ranks = [...new Set(chosen.map((card) => card.rank))].sort((a, b) => a - b);
-        if (ranks.length === length && ranks.every((rank, index) => index === 0 || rank === ranks[index - 1] + 1)) runPoints = Math.max(runPoints, length);
+        if (ranks.length === length && ranks.every((rank, index) => index === 0 || rank === ranks[index - 1] + 1)) runPoints += length;
       }
       if (runPoints) { points += runPoints; break; }
     }
@@ -66,8 +66,11 @@
     const deck = shuffle(makeDeck());
     const computer = els.mode.checked;
     const playerCount = computer ? 2 : Number(els.playerCount.value);
-    state = { deck, hands: Array.from({ length: playerCount }, () => []), playerCount, crib: [], cribTarget: playerCount * 2, starter: null, selected: [], active: 0, phase: "discard", dealer: playerCount - 1, scores: Array(playerCount).fill(0), pegCount: 0, pegSequence: [], passed: Array(playerCount).fill(false), lastPegPlayer: null, computer, aiPending: false, result: "", revealedPlayer: 0, lastActive: 0 };
-    for (let index = 0; index < 6; index += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.deck.pop());
+    const cardsPerHand = playerCount === 2 ? 6 : 5;
+    const discardCount = playerCount === 2 ? 2 : 1;
+    state = { deck, hands: Array.from({ length: playerCount }, () => []), scoringHands: [], playerCount, crib: [], cribTarget: 4, discardCount, starter: null, selected: [], active: 0, phase: "discard", dealer: playerCount - 1, scores: Array(playerCount).fill(0), pegCount: 0, pegSequence: [], passed: Array(playerCount).fill(false), lastPegPlayer: null, computer, aiPending: false, result: "", revealedPlayer: 0, lastActive: 0 };
+    for (let index = 0; index < cardsPerHand; index += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.deck.pop());
+    if (playerCount === 3) state.crib.push(state.deck.pop());
     els.playerCount.disabled = computer;
     render(); scheduleAI();
   }
@@ -75,7 +78,7 @@
   function toggleCard(index) {
     if (state.phase !== "discard" || !canAct()) return;
     if (state.selected.includes(index)) state.selected = state.selected.filter((item) => item !== index);
-    else if (state.selected.length < 2) state.selected.push(index);
+    else if (state.selected.length < state.discardCount) state.selected.push(index);
     render();
   }
 
@@ -92,7 +95,7 @@
   }
 
   function confirmSelection() {
-    if (state.phase !== "discard" || state.selected.length !== 2 || !turnUnlocked()) return;
+    if (state.phase !== "discard" || state.selected.length !== state.discardCount || !turnUnlocked()) return;
     if (!canAct()) return;
     const moved = state.hands[state.active].filter((_, index) => state.selected.includes(index));
     state.hands[state.active] = state.hands[state.active].filter((_, index) => !state.selected.includes(index));
@@ -104,7 +107,10 @@
 
   function finishDiscard() {
     if (state.crib.length !== state.cribTarget) return;
-    state.starter = state.deck.pop(); state.phase = "ready"; state.active = (state.dealer + 1) % state.playerCount; state.pegCount = 0; state.pegSequence = []; state.passed = Array(state.playerCount).fill(false);
+    state.starter = state.deck.pop();
+    state.scoringHands = state.hands.map((hand) => hand.slice());
+    if (state.starter.rank === 11) state.scores[state.dealer] += 2;
+    state.phase = "ready"; state.active = (state.dealer + 1) % state.playerCount; state.pegCount = 0; state.pegSequence = []; state.passed = Array(state.playerCount).fill(false);
   }
 
   function beginPegging() { if (state.phase !== "ready") return; state.phase = "peg"; state.active = (state.dealer + 1) % state.playerCount; state.pegCount = 0; state.pegSequence = []; state.passed = Array(state.playerCount).fill(false); render(); scheduleAI(); }
@@ -112,7 +118,7 @@
   function legalPegCards(player) { return state.hands[player].filter((card) => value(card) + state.pegCount <= 31); }
 
   function finishRound() {
-    state.hands.forEach((hand, player) => { state.scores[player] += scoreHand(hand, state.starter, false); });
+    state.scoringHands.forEach((hand, player) => { state.scores[player] += scoreHand(hand, state.starter, false); });
     state.scores[state.dealer] += scoreHand(state.crib, state.starter, true);
     state.phase = "complete"; state.result = "Round complete. " + state.scores.map((score, player) => "Player " + (player + 1) + " " + score).join(", ") + ".";
   }
@@ -121,7 +127,7 @@
     if (state.phase !== "peg" || state.active < 0 || !turnUnlocked()) return;
     const card = state.hands[state.active][index]; if (!card || !legalPegCards(state.active).some((candidate) => candidate.id === card.id)) return;
     state.hands[state.active].splice(index, 1); state.pegSequence.push(card); state.pegCount += value(card); state.scores[state.active] += scorePeg(state.pegSequence); state.lastPegPlayer = state.active; state.passed = Array(state.playerCount).fill(false);
-    if (state.hands.every((hand) => !hand.length)) { finishRound(); render(); return; }
+    if (state.hands.every((hand) => !hand.length)) { if (state.pegCount !== 31) state.scores[state.active] += 1; finishRound(); render(); return; }
     if (state.pegCount === 31) { state.pegCount = 0; state.pegSequence = []; state.active = state.lastPegPlayer; }
     else state.active = (state.active + 1) % state.playerCount;
     render(); scheduleAI();
@@ -156,17 +162,17 @@
     resetReveal();
     els.hands.textContent = "";
     state.hands.forEach((hand, player) => { const box = document.createElement("div"); box.className = "player-box"; const heading = document.createElement("h3"); heading.textContent = "Player " + (player + 1) + (state.active === player && state.phase !== "complete" ? " · active" : "") + (player === 1 && state.computer ? " · computer" : ""); box.appendChild(heading); const row = document.createElement("div"); row.className = "card-row"; hand.forEach((card, index) => { const enabled = state.phase === "discard" ? canAct(player) : state.phase === "peg" && canAct(player) && legalPegCards(player).some((candidate) => candidate.id === card.id); row.appendChild(cardButton(card, enabled, state.selected.includes(index), () => state.phase === "discard" ? toggleCard(index) : playPeg(index), !handVisible(player))); }); box.appendChild(row); els.hands.appendChild(box); });
-    els.crib.textContent = ""; state.crib.forEach((card) => els.crib.appendChild(cardButton(card, false, false, null, false))); if (state.starter) els.crib.appendChild(cardButton(state.starter, false, false, null, false));
+    els.crib.textContent = ""; state.crib.forEach((card) => els.crib.appendChild(cardButton(card, false, false, null, state.phase !== "complete"))); if (state.starter) els.crib.appendChild(cardButton(state.starter, false, false, null, false));
     els.score1.textContent = String(state.scores[0]); els.score2.textContent = String(state.scores[1]);
     els.scorebar.querySelectorAll(".dynamic-score").forEach((item) => item.remove());
     state.scores.slice(2).forEach((score, offset) => { const item = document.createElement("div"); item.className = "dynamic-score"; item.innerHTML = "<span>Player " + (offset + 3) + "</span><strong>" + score + "</strong>"; els.scorebar.insertBefore(item, els.cribCount.parentElement); });
     els.cribCount.textContent = state.crib.length + " / " + state.cribTarget; els.pegCount.textContent = state.pegCount + " / 31";
-    els.confirm.disabled = state.phase !== "discard" || !canAct() || state.selected.length !== 2; els.nextPhase.hidden = state.phase !== "ready"; els.go.hidden = state.phase !== "peg" || !canAct() || legalPegCards(state.active).length > 0;
+    els.confirm.textContent = "Send " + state.discardCount + " to crib"; els.confirm.disabled = state.phase !== "discard" || !canAct() || state.selected.length !== state.discardCount; els.nextPhase.hidden = state.phase !== "ready"; els.go.hidden = state.phase !== "peg" || !canAct() || legalPegCards(state.active).length > 0;
     els.passPanel.hidden = state.computer || state.phase === "complete" || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
-    els.status.textContent = state.result || (state.phase === "discard" ? (canAct() ? "Player " + (state.active + 1) + " chooses two cards for the crib." : "Pass the device to Player " + (state.active + 1) + ".") : state.phase === "ready" ? "Starter card is " + text(state.starter) + "." : state.phase === "peg" ? (canAct() ? "Player " + (state.active + 1) + " to peg." : "Pass the device to Player " + (state.active + 1) + ".") : "Round complete.");
-    els.note.textContent = state.phase === "discard" ? "Choose two cards for the crib. The computer keeps useful cards and builds its crib." : state.phase === "ready" ? "The non-dealer leads pegging. The starter card counts for hand scoring, not pegging." : state.phase === "peg" ? "Pegging scores 15, 31, pairs, and runs. Press Go when you cannot play without exceeding 31." : "Start a new deal to test another round.";
+    els.status.textContent = state.result || (state.phase === "discard" ? (canAct() ? "Player " + (state.active + 1) + " chooses " + state.discardCount + " card" + (state.discardCount === 1 ? "" : "s") + " for the crib." : "Pass the device to Player " + (state.active + 1) + ".") : state.phase === "ready" ? "Starter card is " + text(state.starter) + "." : state.phase === "peg" ? (canAct() ? "Player " + (state.active + 1) + " to peg." : "Pass the device to Player " + (state.active + 1) + ".") : "Round complete.");
+    els.note.textContent = state.phase === "discard" ? (state.playerCount === 2 ? "Two-player Cribbage deals six cards and each player sends two to the crib." : "Three- and four-player Cribbage deals five cards and each player sends one to the four-card crib.") : state.phase === "ready" ? "The non-dealer leads pegging. The starter card counts for hand scoring, not pegging." : state.phase === "peg" ? "Pegging scores 15, 31, pairs, runs, Go, and the last card. Hands are preserved for scoring after pegging." : "Start a new deal to test another round.";
   }
 
   els.mode.addEventListener("change", () => { newGame(); });

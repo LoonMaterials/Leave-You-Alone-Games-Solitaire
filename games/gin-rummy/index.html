@@ -18,10 +18,10 @@
         <div class="actions"><span id="status" class="status" aria-live="polite"></span><label><input id="computer-mode" type="checkbox" checked> Play against computer</label><label>Players <select id="player-count"><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label><a class="button-link" href="../../index.html">Main Menu</a><button id="new-game" type="button">New Deal</button></div>
       </header>
       <section class="scorebar"><div><span>Player 1</span><strong id="count-1">10 cards</strong></div><div><span>Stock</span><strong id="stock-count">0</strong></div><div><span>Discard</span><strong id="discard-top">—</strong></div><div><span>Player 2</span><strong id="count-2">10 cards</strong></div></section>
-      <section class="panel actions-panel"><button id="draw-card" type="button">Draw from stock</button><button id="draw-discard" type="button">Draw discard</button><button id="discard-card" type="button" disabled>Discard selected</button><button id="knock" type="button" disabled>Knock with discard</button><span id="turn-note" class="note">Draw one card, select a discard, then either end the turn or knock.</span></section>
+      <section class="panel actions-panel"><button id="draw-card" type="button">Draw from stock</button><button id="draw-discard" type="button">Draw discard</button><button id="discard-card" type="button" disabled>Discard selected</button><button id="knock" type="button" disabled>Knock with discard</button><span id="turn-note" class="note">Gin Rummy keeps melds in the hand. Draw, select a discard, then knock only with 10 or fewer deadwood points.</span></section>
       <section id="pass-panel" class="panel pass-panel" hidden><strong id="pass-title"></strong><button id="show-hand" type="button">Show this player's cards</button></section>
       <section class="panel"><div class="panel-heading"><h2>Hands</h2><span>Pass the device between turns.</span></div><div id="hands" class="players"></div></section>
     </main>
-    <script src="app.js?v=20260808-privacy-1"></script>
+    <script src="app.js?v=20260809-distinct-1"></script>
   </body>
 </html>
