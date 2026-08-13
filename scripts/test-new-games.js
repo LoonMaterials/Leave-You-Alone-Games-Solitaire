@@ -4,11 +4,11 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const launcher = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const games = {
-  "cribbage": ["scoreHand", "scorePeg", "finishDiscard", "finishRound", "scheduleAI"],
+  "cribbage": ["scoreHand", "scorePeg", "runRank", "expectedHandScore", "finishDiscard", "finishRound", "scheduleAI"],
   "rummy": ["bestPartition", "layMeld", "layOff", "goOut", "scheduleAI"],
-  "gin-rummy": ["bestPartition", "roundResult", "scheduleAI"],
-  "hearts": ["legalCards", "trickWinner", "scheduleAI"],
-  "spades": ["legalCards", "trickWinner", "scheduleAI"],
+  "gin-rummy": ["bestPartition", "bestLayoffDeadwood", "roundResult", "cancelHand", "scheduleAI"],
+  "hearts": ["legalCards", "trickWinner", "confirmPass", "scheduleAI"],
+  "spades": ["legalCards", "trickWinner", "bidEstimate", "scheduleAI"],
   "83-maines-card-game": ["legalCards", "evaluateTrump", "bestTrumpPlan", "aiAuction", "aiDiscard", "aiPlay", "handVisible", "scheduleAI"]
 };
 const passAndPlayGames = new Set(["cribbage", "rummy", "gin-rummy", "hearts", "spades"]);
@@ -44,6 +44,11 @@ for (const [game, markers] of Object.entries(games)) {
     for (const marker of ["cardsPerHand", "discardCount", "scoringHands", "cribTarget: 4"]) if (!source.includes(marker)) fail(`cribbage is missing distinct deal/scoring rule ${marker}`);
   }
   if (game === "hearts" && !source.includes("const shooter = state.scores.findIndex")) fail("hearts is missing shoot-the-moon scoring");
+  if (game === "hearts" && !source.includes('card.id !== "D2"')) fail("three-player Hearts must remove the non-scoring 2 of diamonds");
+  if (game === "83-maines-card-game") {
+    if (!source.includes("return ledSuit.concat(trumps)")) fail("83 must allow either following a plain suit or playing trump");
+    if (!source.includes("function isDiscardable(card)")) fail("83 must protect scoring trumps during discarding");
+  }
   for (const marker of markers) if (!source.includes(`function ${marker}`)) fail(`${game} is missing ${marker}()`);
   if (/\.\.\/\.\.\/games\//.test(source)) fail(`${game} imports source from another game folder`);
   try { new Function(source); } catch (error) { fail(`${game} failed JavaScript syntax validation: ${error.message}`); }

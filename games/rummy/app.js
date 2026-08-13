@@ -5,15 +5,21 @@
   const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const SYMBOLS = { S: "♠", H: "♥", D: "♦", C: "♣" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
+  const DIFFICULTY_KEY = "leave-me-alone-rummy-difficulty";
+  const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const els = {
     status: document.getElementById("status"), hands: document.getElementById("hands"), melds: document.getElementById("melds"),
     stock: document.getElementById("stock-count"), discard: document.getElementById("discard-top"), count1: document.getElementById("count-1"), count2: document.getElementById("count-2"),
     draw: document.getElementById("draw-card"), drawDiscard: document.getElementById("draw-discard"), layMeld: document.getElementById("lay-meld"),
-    discardCard: document.getElementById("discard-card"), goOut: document.getElementById("go-out"), mode: document.getElementById("computer-mode"),
+    discardCard: document.getElementById("discard-card"), goOut: document.getElementById("go-out"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"),
     playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"),
     showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note")
   };
   let state;
+
+  function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
+  function applyDifficulty() { els.difficulty.value = storedDifficulty(); els.difficulty.disabled = !els.mode.checked; }
+  function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
 
   function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
   function canAct() { return state.winner === null && (!state.computer || state.active === 0) && handVisible(state.active); }
@@ -80,6 +86,34 @@
   }
 
   function handIsMeldable(hand) { return hand.length > 0 && bestPartition(hand).used === hand.length; }
+  function handPotential(hand) {
+    const partition = bestPartition(hand);
+    let potential = partition.used * 35 - partition.deadwood;
+    for (let first = 0; first < hand.length; first += 1) for (let second = first + 1; second < hand.length; second += 1) {
+      const a = hand[first], b = hand[second];
+      if (a.rank === b.rank) potential += 9;
+      if (a.suit === b.suit) {
+        const gap = Math.abs(runRank(a) - runRank(b));
+        if (gap === 1) potential += 7;
+        else if (gap === 2) potential += 3;
+      }
+    }
+    return potential;
+  }
+
+  function opponentDiscardDanger(card) {
+    return state.opponentPickups.reduce((danger, pickup) => danger + (pickup.rank === card.rank ? 8 : pickup.suit === card.suit && Math.abs(runRank(pickup) - runRank(card)) <= 2 ? 5 : 0), 0);
+  }
+
+  function bestDiscardPlan(hand, forbiddenId, hard) {
+    return hand.map((card, index) => {
+      if (card.id === forbiddenId) return null;
+      const remaining = hand.slice();
+      remaining.splice(index, 1);
+      return { index, card, deadwood: bestPartition(remaining).deadwood, potential: handPotential(remaining), danger: hard ? opponentDiscardDanger(card) : 0 };
+    }).filter(Boolean).sort((a, b) => b.potential - a.potential || a.deadwood - b.deadwood || a.danger - b.danger || cardValue(b.card) - cardValue(a.card))[0];
+  }
+
   function selectedCards(player) {
     const selected = new Set(state.selected);
     return state.hands[player].filter((card) => selected.has(card.id));
@@ -99,11 +133,12 @@
     state = {
       stock: deck, discard: [], hands: Array.from({ length: playerCount }, () => []), melds: [], active: 0, drawn: false,
       selected: [], drawnDiscardId: null, computer, playerCount, winner: null, score: Array(playerCount).fill(0), aiPending: false,
-      revealedPlayer: 0, lastActive: 0
+      revealedPlayer: 0, lastActive: 0, opponentPickups: []
     };
     for (let round = 0; round < 7; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.stock.pop());
     state.discard.push(state.stock.pop());
     els.playerCount.disabled = computer;
+    els.difficulty.disabled = !computer;
     render();
     scheduleAI();
   }
@@ -123,6 +158,7 @@
     if (!canAct() || state.drawn || !state.discard.length) return;
     const card = state.discard.pop();
     state.hands[state.active].push(card);
+    if (state.computer && state.active === 0) state.opponentPickups = state.opponentPickups.concat(card).slice(-4);
     state.drawn = true;
     state.drawnDiscardId = card.id;
     state.selected = [];
@@ -217,23 +253,25 @@
 
   function aiTurn() {
     const player = state.active;
+    const difficulty = storedDifficulty();
     recycleStock();
     const top = state.discard[state.discard.length - 1];
-    const useDiscard = top && bestPartition(state.hands[player].concat(top)).used > bestPartition(state.hands[player]).used;
-    if (useDiscard) state.hands[player].push(state.discard.pop());
+    const currentPotential = handPotential(state.hands[player]);
+    const topPlan = top ? bestDiscardPlan(state.hands[player].concat(top), top.id, difficulty === "hard") : null;
+    const topGain = topPlan ? topPlan.potential - currentPotential : -Infinity;
+    const useDiscard = Boolean(top && (difficulty === "easy" ? topGain > 8 && Math.random() > 0.35 : difficulty === "hard" ? topGain > -1 : topGain > 3));
+    let drawnDiscardId = null;
+    if (useDiscard) { const card = state.discard.pop(); state.hands[player].push(card); drawnDiscardId = card.id; }
     else if (state.stock.length) state.hands[player].push(state.stock.pop());
     else if (top) state.hands[player].push(state.discard.pop());
     state.drawn = true;
     aiLayCards(player);
     if (!state.hands[player].length) { finishRound(player); render(); return; }
-    let best = null;
-    state.hands[player].forEach((card, index) => {
-      const hand = state.hands[player].slice();
-      hand.splice(index, 1);
-      const candidate = { index, deadwood: bestPartition(hand).deadwood, value: cardValue(card) };
-      if (!best || candidate.deadwood < best.deadwood || (candidate.deadwood === best.deadwood && candidate.value > best.value)) best = candidate;
-    });
-    state.discard.push(state.hands[player].splice(best ? best.index : 0, 1)[0]);
+    const candidates = state.hands[player].map((card, index) => ({ card, index })).filter((item) => item.card.id !== drawnDiscardId);
+    let choice;
+    if (difficulty === "easy") choice = candidates[Math.floor(Math.random() * candidates.length)];
+    else choice = bestDiscardPlan(state.hands[player], drawnDiscardId, difficulty === "hard") || candidates[0];
+    state.discard.push(state.hands[player].splice(choice ? choice.index : 0, 1)[0]);
     state.drawn = false;
     state.active = (player + 1) % state.playerCount;
     state.aiPending = false;
@@ -312,11 +350,12 @@
     els.passPanel.hidden = state.computer || state.winner !== null || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
-    els.note.textContent = state.winner === null ? "Basic Rummy uses seven-card hands here. Meld sets or same-suit runs on the table; unlike Gin Rummy, players may lay off cards during play." : "Unmelded cards left in the other hands were added to the winner's score.";
+    els.note.textContent = state.winner === null ? "Rummy uses seven-card hands. Meld sets or same-suit runs on the table; unlike Gin Rummy, players may lay off cards during play." : "Unmelded cards left in the other hands were added to the winner's score.";
     renderMelds();
   }
 
-  els.mode.addEventListener("change", newGame);
+  els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
+  els.difficulty.addEventListener("change", saveDifficulty);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame);
@@ -326,6 +365,7 @@
   els.discardCard.addEventListener("click", discardSelected);
   els.goOut.addEventListener("click", goOut);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
+  applyDifficulty();
   newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

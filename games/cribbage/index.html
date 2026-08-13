@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#2f6f58">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Cribbage">
-    <title>Cribbage - Basic Build</title>
+    <title>Cribbage</title>
     <link rel="manifest" href="../../manifest.webmanifest">
     <link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
     <link rel="stylesheet" href="styles.css?v=20260804-base-1">
@@ -16,11 +16,12 @@
       <header class="topbar">
         <div>
           <h1>Cribbage</h1>
-          <p>Local cribbage · crib selection, pegging, scoring, and a basic computer opponent</p>
+          <p>Local cribbage · crib selection, pegging, scoring, and a strategic computer opponent</p>
         </div>
         <div class="actions">
           <span id="status" class="status" aria-live="polite"></span>
           <label><input id="computer-mode" type="checkbox" checked> Play against computer</label>
+          <label>Difficulty <select id="difficulty"><option value="easy">Easy · relaxed</option><option value="medium" selected>Medium · thinking</option><option value="hard">Hard · strategic</option></select></label>
           <label>Players <select id="player-count"><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label>
           <a class="button-link" href="../../index.html">Main Menu</a>
           <button id="new-game" type="button">New Deal</button>
@@ -50,6 +51,6 @@
         <p id="note" class="note">Choose two cards for the crib. The computer will choose its two cards automatically.</p>
       </section>
     </main>
-    <script src="app.js?v=20260809-distinct-1"></script>
+    <script src="app.js?v=20260813-release-2"></script>
   </body>
 </html>

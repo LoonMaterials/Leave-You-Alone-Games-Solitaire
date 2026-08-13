@@ -1,143 +1,90 @@
 # Leave Me Alone Games
 
-A quiet offline game collection built with plain HTML, CSS, and JavaScript.
+Leave Me Alone Games 3.2.0 is a quiet, offline-first collection of 31 card, board, dice, solitaire, and puzzle games. It has no ads, accounts, analytics, tracking, subscriptions, or in-app purchases.
 
-The app is designed for mobile-first play with no ads, accounts, tracking, analytics, or network calls.
+## Release status
+
+- Web/PWA source and offline cache are included.
+- The Android wrapper is in `android/` and targets Android API 36.
+- The iOS wrapper is in `ios/` and targets iPhone and iPad on iOS 15 or later.
+- Native wrappers use the package ID `com.loonmaterials.leavemealonegames`.
+- Version 3.2.0 store copy and publishing checklists are in `store-assets/`.
+- Android can be packaged and checked on Windows; a final signed release needs the private upload key.
+- iOS source can be structurally checked on Windows, but archiving, signing, TestFlight, and real-device validation require a Mac and Xcode.
 
 ## Games
 
-### Card Games
+### Card and solitaire
 
-- Klondike Solitaire: `games/klondike/`
-- FreeCell: `games/freecell/`
-- Spider Solitaire: `games/spider/`
-- Pyramid Solitaire: `games/pyramid/`
-- Tri-Peaks Solitaire: `games/tripeaks/`
-- Golf Solitaire: `games/golf/`
-- Yukon Solitaire: `games/yukon/`
-- Rummy: `games/rummy/` (initial meld and computer-play build)
-- Gin Rummy: `games/gin-rummy/` (initial meld, knock, and computer-play build)
-- Hearts: `games/hearts/` (initial legal-trick and scoring build)
-- Spades: `games/spades/` (initial bidding, legal-trick, and scoring build)
-- 83-Maine's Card Game: `games/83-maines-card-game/` (initial auction, partnership, and trick AI build)
+Klondike, FreeCell, Spider, Pyramid, Tri-Peaks, Golf, Yukon, Rummy, Gin Rummy, Hearts, Spades, and 83-Maine's Card Game.
 
-### Board Games
+### Board and table
 
-- Chess: `games/chess/`
-- Checkers: `games/checkers/`
-- Mahjong: `games/mahjong/`
-- Dominoes: `games/dominoes/`
-- Reversi: `games/reversi/`
-- Backgammon: `games/backgammon-classic/`
-- Connect 4: `games/connect4/`
-- Tic-Tac-Toe: `games/tic-tac-toe/`
-- Cribbage: `games/cribbage/` (initial crib, pegging, scoring, and computer-play build)
+Chess, Checkers, Mahjong, Dominoes, Reversi, Backgammon, Connect 4, Tic-Tac-Toe, and Cribbage.
 
-### Dice and Puzzle Games
+### Dice
 
-The remaining game folders contain the dice and puzzle games listed on the launcher.
+Yacht, Farkle, and Shut the Box.
 
-## Structure
+### Puzzles
 
-- `index.html` - app launcher
-- `launcher.css` - launcher layout and visual style
-- `launcher.js` - app-level service worker registration
-- `i18n.js` - shared language layer
-- `games/klondike/` - Klondike HTML, CSS, and JS
-- `games/freecell/` - FreeCell HTML, CSS, and JS
-- `games/spider/` - Spider Solitaire HTML, CSS, and JS
-- `games/pyramid/` - Pyramid Solitaire HTML, CSS, and JS
-- `games/tripeaks/` - Tri-Peaks Solitaire HTML, CSS, and JS
-- `games/golf/` - Golf Solitaire HTML, CSS, and JS
-- `games/yukon/` - Yukon Solitaire HTML, CSS, and JS
-- `games/rummy/` - Rummy HTML, CSS, and JS
-- `games/gin-rummy/` - Gin Rummy HTML, CSS, and JS
-- `games/hearts/` - Hearts HTML, CSS, and JS
-- `games/spades/` - Spades HTML, CSS, and JS
-- `games/83-maines-card-game/` - 83-Maine's Card Game HTML, CSS, and JS
-- `games/cribbage/` - Cribbage HTML, CSS, and JS
-- `scripts/build-www.js` - builds the Capacitor app bundle
-- `manifest.webmanifest` - installable app metadata
-- `sw.js` - offline cache service worker
-- `icons/` - home-screen and app icons
-- `ios/` - Capacitor iOS wrapper for Xcode
-- `android/` - Capacitor Android wrapper for Android Studio
+Sudoku, Kakuro, Peg Solitaire, Mastermind, Nonograms, 2048, and Lights Out.
 
-Each game folder owns its own page, styles, and game logic. The five newest games are intentionally standalone basic builds with no shared game source files. New games should be added as separate folders under `games/`.
+## Computer play and local play
 
-## Privacy
+Computer-opponent games provide Easy, Medium, and Hard choices. Chess also includes Grandmaster. The newest strategy pass adds meld and discard evaluation to Rummy and Gin Rummy, passing and trick strategy to Hearts, partnership contract play to Spades and 83, crib/pegging evaluation to Cribbage, and perfect-play minimax to hard Tic-Tac-Toe.
 
-This app does not collect data.
+Rummy, Gin Rummy, Hearts, Spades, Cribbage, and 83 keep each player’s hand private during same-device play. When a turn moves to another human, the next hand remains hidden until that player deliberately reveals it.
 
-It uses browser storage only for local game state and local settings.
+## Source layout
 
-There are no external requests, ads, accounts, analytics, or tracking scripts.
+- `index.html`, `launcher.css`, and `launcher.js`: main game launcher
+- `games/<game>/`: self-contained HTML, CSS, and JavaScript for one game
+- `icons/`: web and home-screen icons
+- `privacy.html` and `support.html`: public store-policy pages
+- `scripts/build-www.js`: creates and verifies the Capacitor web bundle
+- `scripts/test-all-games.js`: audits every game folder, launcher entry, offline asset, syntax, difficulty control, and private-hand control
+- `scripts/test-new-games.js`: focused distinct-rule checks for Rummy, Gin Rummy, Hearts, Spades, Cribbage, and 83
+- `scripts/test-release-readiness.js`: checks platform IDs, versions, privacy metadata, and release documents
+- `scripts/test-native-sync.js`: proves the generated web bundle is byte-for-byte current in both native wrappers
+- `scripts/generate-mobile-artwork.py`: regenerates branded native icons and launch screens from the 1024-pixel master artwork
+- `android/`: native Android wrapper
+- `ios/`: native iOS wrapper
+- `store-assets/`: store copy and the platform publishing checklist
 
-See [PRIVACY.md](PRIVACY.md) for the full privacy statement.
+Every game owns its own `index.html`, `styles.css`, and `app.js`. Games do not import logic from another game folder. Generated copies in `www/`, `android/app/src/main/assets/public/`, and `ios/App/App/public/` are not source files and should not be edited by hand.
 
-## Run Locally
+## Verify the release
 
-Open `index.html` in a browser.
+Install the locked dependencies, then run:
 
-For phone testing, serve the folder with a static web server and open the served site from the phone.
+```text
+npm run release:verify
+```
 
-Run `npm run test:games` for the standalone new-game smoke checks. These checks
-validate each game's local files, syntax, launcher entry, and core rule/AI hooks.
+That command checks all games, release metadata, and the generated offline bundle. Focused game checks can be run with `npm run test:games`; release metadata can be checked with `npm run test:release`.
 
-## Build For iOS
+## Android
 
-The iOS wrapper loads the generated `www/` folder. That folder is not committed because it is rebuilt from the source files.
+Prepare and sync the current source with:
 
-On a Mac after cloning:
+```text
+npm run sync:android
+```
 
-1. Install Node.js.
-2. Run `npm install`.
-3. Run `npm run open:ios`.
+For a signed release, copy `android/upload-keystore.properties.example` to the ignored private file `android/upload-keystore.properties`, fill in the upload-key values, and build the `bundleRelease` task in Android Studio or Gradle. Upload the resulting signed AAB to Play Console internal testing before production.
 
-`npm install` automatically creates a complete `www/` bundle. `npm run open:ios`
-clears and rebuilds `www/`, removes Capacitor's previous iOS web copy, syncs the fresh files into the
-Capacitor iOS project, and opens Xcode. After changing any game or launcher file,
-run the same command again.
+## iOS
 
-To prepare and sync without opening Xcode, run `npm run sync:ios`. To rebuild
-and verify only the `www/` bundle, run `npm run prepare:ios`.
+On a Mac with the currently required Xcode and iOS SDK:
 
-Do not move web files into `www/` or `ios/App/App/public/` manually. Both are
-generated copies. The source of truth is `index.html`, the root launcher files,
-`games/`, and `icons/`. Capacitor copies `www/` into `ios/App/App/public/` during
-`npm run sync:ios` or `npm run open:ios`.
+```text
+npm install
+npm run sync:ios
+```
 
-## Build For Android
+Open `ios/App/App.xcodeproj`, select the Apple team, test on iPhone and iPad, archive, validate, and upload to App Store Connect. Use TestFlight before App Review.
 
-The Android wrapper is kept separately from the iOS wrapper in `android/`.
-The same standalone game folders are rebuilt into `www/`, then copied into the
-Android project by Capacitor.
+## Privacy and publishing
 
-On a Windows or Linux development machine:
-
-1. Install Node.js and Android Studio.
-2. Run `npm install`.
-3. Run `npm run open:android` to rebuild, sync, and open Android Studio.
-
-To prepare and sync without opening Android Studio, run `npm run sync:android`.
-To rebuild only the generated web bundle, run `npm run prepare:android`.
-
-Do not manually copy files into `www/` or `android/app/src/main/assets/public/`;
-both are generated copies. The source of truth remains the root launcher files,
-`games/`, and `icons/`.
-
-## Install As An App
-
-When hosted over HTTPS, the app can be installed from supported mobile browsers.
-
-On iPhone:
-
-1. Open the hosted app in Safari.
-2. Tap Share.
-3. Tap Add to Home Screen.
-
-## App Store Notes
-
-This repository is currently focused on the iPhone/iOS version of the app. To submit it to the App Store, use the included Capacitor iOS wrapper and generated local app files.
-
-See [STORE_PREP.md](STORE_PREP.md) for iOS packaging notes.
+The native apps package their game files locally and do not request Android Internet access. Preferences and current-session state stay on the device. See [PRIVACY.md](PRIVACY.md), [privacy.html](privacy.html), [STORE_PREP.md](STORE_PREP.md), [store-assets/PUBLISHING_CHECKLIST.md](store-assets/PUBLISHING_CHECKLIST.md), and [store-assets/VERIFICATION_REPORT.md](store-assets/VERIFICATION_REPORT.md).

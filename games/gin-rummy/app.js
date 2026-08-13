@@ -5,14 +5,20 @@
   const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const SYMBOLS = { S: "♠", H: "♥", D: "♦", C: "♣" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
+  const DIFFICULTY_KEY = "leave-me-alone-gin-rummy-difficulty";
+  const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const els = {
     status: document.getElementById("status"), hands: document.getElementById("hands"), stock: document.getElementById("stock-count"),
     discard: document.getElementById("discard-top"), count1: document.getElementById("count-1"), count2: document.getElementById("count-2"),
     draw: document.getElementById("draw-card"), drawDiscard: document.getElementById("draw-discard"), discardCard: document.getElementById("discard-card"),
-    knock: document.getElementById("knock"), mode: document.getElementById("computer-mode"), playerCount: document.getElementById("player-count"),
+    knock: document.getElementById("knock"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"),
     passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note")
   };
   let state;
+
+  function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
+  function applyDifficulty() { els.difficulty.value = storedDifficulty(); els.difficulty.disabled = !els.mode.checked; }
+  function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
 
   function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
   function canAct() { return state.result === null && (!state.computer || state.active === 0) && handVisible(state.active); }
@@ -73,11 +79,55 @@
 
   function deadwood(hand) { return bestPartition(hand).deadwood; }
 
-  function recycleStock() {
-    if (state.stock.length || state.discard.length <= 1) return;
-    const top = state.discard.pop();
-    state.stock = shuffle(state.discard.splice(0));
-    state.discard = [top];
+  function handPotential(hand) {
+    const partition = bestPartition(hand);
+    let potential = partition.used * 34 - partition.deadwood;
+    for (let first = 0; first < hand.length; first += 1) for (let second = first + 1; second < hand.length; second += 1) {
+      const a = hand[first], b = hand[second];
+      if (a.rank === b.rank) potential += 8;
+      if (a.suit === b.suit) {
+        const gap = Math.abs(runRank(a) - runRank(b));
+        if (gap === 1) potential += 7;
+        else if (gap === 2) potential += 3;
+      }
+    }
+    return potential;
+  }
+
+  function discardDanger(card) {
+    return state.opponentPickups.reduce((danger, pickup) => danger + (pickup.rank === card.rank ? 8 : pickup.suit === card.suit && Math.abs(runRank(pickup) - runRank(card)) <= 2 ? 5 : 0), 0);
+  }
+
+  function discardPlans(hand, forbiddenId) {
+    return hand.map((card, index) => {
+      if (card.id === forbiddenId) return null;
+      const remaining = hand.slice(); remaining.splice(index, 1);
+      return { index, card, remaining, deadwood: deadwood(remaining), potential: handPotential(remaining), danger: discardDanger(card) };
+    }).filter(Boolean);
+  }
+
+  function bestLayoffDeadwood(hand, knockerGroups) {
+    const own = bestPartition(hand);
+    const used = new Set(own.groups.flat().map((card) => card.id));
+    const loose = hand.filter((card) => !used.has(card.id));
+    let best = loose.reduce((total, card) => total + cardValue(card), 0);
+    function place(index, groups, remaining) {
+      if (index === loose.length) { best = Math.min(best, remaining); return; }
+      const card = loose[index];
+      place(index + 1, groups, remaining);
+      groups.forEach((group, groupIndex) => {
+        if (!isMeld(group.concat(card))) return;
+        const next = groups.map((cards) => cards.slice()); next[groupIndex].push(card);
+        place(index + 1, next, remaining - cardValue(card));
+      });
+    }
+    place(0, knockerGroups.map((group) => group.slice()), best);
+    return best;
+  }
+
+  function cancelHand() {
+    state.drawn = false; state.selected = null; state.drawnDiscardId = null; state.aiPending = false;
+    state.result = { winner: null, text: "Only two stock cards remain. The hand ends without a score." };
   }
 
   function newGame() {
@@ -85,23 +135,25 @@
     const computer = els.mode.checked;
     const playerCount = computer ? 2 : Number(els.playerCount.value);
     const handSize = playerCount === 2 ? 10 : 7;
-    state = { stock: deck, discard: [deck.pop()], hands: Array.from({ length: playerCount }, () => []), active: 0, drawn: false, selected: null, computer, playerCount, scores: Array(playerCount).fill(0), result: null, aiPending: false, revealedPlayer: 0, lastActive: 0 };
+    state = { stock: deck, discard: [deck.pop()], hands: Array.from({ length: playerCount }, () => []), active: 0, drawn: false, drawnDiscardId: null, selected: null, computer, playerCount, scores: Array(playerCount).fill(0), result: null, aiPending: false, revealedPlayer: 0, lastActive: 0, opponentPickups: [] };
     for (let round = 0; round < handSize; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.stock.pop());
     els.playerCount.disabled = computer;
+    els.difficulty.disabled = !computer;
     render();
     scheduleAI();
   }
 
   function drawFromStock() {
     if (state.result || !canAct() || state.drawn) return;
-    recycleStock();
-    if (!state.stock.length) return;
-    state.hands[state.active].push(state.stock.pop()); state.drawn = true; state.selected = null; render();
+    if (state.stock.length <= 2) { cancelHand(); render(); return; }
+    state.hands[state.active].push(state.stock.pop()); state.drawn = true; state.drawnDiscardId = null; state.selected = null; render();
   }
 
   function drawFromDiscard() {
     if (state.result || !canAct() || state.drawn || !state.discard.length) return;
-    state.hands[state.active].push(state.discard.pop()); state.drawn = true; state.selected = null; render();
+    const card = state.discard.pop(); state.hands[state.active].push(card); state.drawn = true; state.drawnDiscardId = card.id; state.selected = null;
+    if (state.computer && state.active === 0) state.opponentPickups = state.opponentPickups.concat(card).slice(-5);
+    render();
   }
 
   function selectCard(index) {
@@ -110,48 +162,67 @@
   }
 
   function roundResult(knocker, knockerHand) {
-    const opponent = (knocker + 1) % state.playerCount;
     const knockDeadwood = deadwood(knockerHand);
-    const opponentDeadwood = deadwood(state.hands[opponent]);
-    if (knockDeadwood === 0) { state.scores[knocker] += opponentDeadwood + 25; state.result = { winner: knocker, text: "Gin! Player " + (knocker + 1) + " scores " + (opponentDeadwood + 25) + "." }; return; }
-    if (knockDeadwood < opponentDeadwood) { state.scores[knocker] += opponentDeadwood - knockDeadwood; state.result = { winner: knocker, text: "Player " + (knocker + 1) + " wins the knock by " + (opponentDeadwood - knockDeadwood) + "." }; return; }
-    state.scores[opponent] += knockDeadwood - opponentDeadwood + 25;
-    state.result = { winner: opponent, text: "Undercut! Player " + (opponent + 1) + " scores " + (knockDeadwood - opponentDeadwood + 25) + "." };
+    const knockerGroups = bestPartition(knockerHand).groups;
+    const opponents = state.hands.map((hand, player) => player === knocker ? null : ({ player, deadwood: knockDeadwood === 0 ? deadwood(hand) : bestLayoffDeadwood(hand, knockerGroups) })).filter(Boolean);
+    if (knockDeadwood === 0) {
+      const points = opponents.reduce((total, opponent) => total + opponent.deadwood, 0) + 25;
+      state.scores[knocker] += points; state.result = { winner: knocker, text: "Gin! Player " + (knocker + 1) + " scores " + points + "." }; return;
+    }
+    const undercutter = opponents.slice().sort((a, b) => a.deadwood - b.deadwood)[0];
+    if (undercutter && undercutter.deadwood <= knockDeadwood) {
+      const points = knockDeadwood - undercutter.deadwood + 25;
+      state.scores[undercutter.player] += points;
+      state.result = { winner: undercutter.player, text: "Undercut! Player " + (undercutter.player + 1) + " scores " + points + "." };
+      return;
+    }
+    const points = opponents.reduce((total, opponent) => total + opponent.deadwood - knockDeadwood, 0);
+    state.scores[knocker] += points;
+    state.result = { winner: knocker, text: "Player " + (knocker + 1) + " wins the knock and scores " + points + "." };
   }
 
   function discard(index, knock) {
     if (state.result || !canAct() || !state.drawn || index === null || index === undefined) return;
     const player = state.active;
+    if (state.hands[player][index]?.id === state.drawnDiscardId) return;
     const hand = state.hands[player].slice(); hand.splice(index, 1);
     if (knock && deadwood(hand) > 10) return;
-    state.discard.push(state.hands[player].splice(index, 1)[0]); state.drawn = false; state.selected = null;
+    state.discard.push(state.hands[player].splice(index, 1)[0]); state.drawn = false; state.drawnDiscardId = null; state.selected = null;
     if (knock) roundResult(player, state.hands[player]);
+    else if (state.stock.length <= 2) cancelHand();
     else { state.active = (player + 1) % state.playerCount; scheduleAI(); }
     render();
   }
 
   function aiDraw() {
-    recycleStock();
+    if (state.stock.length <= 2) { cancelHand(); return; }
+    const difficulty = storedDifficulty();
     const top = state.discard[state.discard.length - 1];
-    const stockCard = state.stock[state.stock.length - 1];
-    const discardValue = top ? deadwood(state.hands[1].concat(top)) : Infinity;
-    const stockValue = stockCard ? deadwood(state.hands[1].concat(stockCard)) : Infinity;
-    if (top && discardValue <= stockValue) state.hands[1].push(state.discard.pop());
+    const currentDeadwood = deadwood(state.hands[1]);
+    const plans = top ? discardPlans(state.hands[1].concat(top), top.id) : [];
+    plans.sort((a, b) => a.deadwood - b.deadwood || b.potential - a.potential || a.danger - b.danger);
+    const best = plans[0];
+    const useDiscard = Boolean(best && (difficulty === "easy" ? currentDeadwood - best.deadwood >= 5 && Math.random() > 0.4 : difficulty === "hard" ? best.potential >= handPotential(state.hands[1]) : best.deadwood < currentDeadwood));
+    if (useDiscard) { const card = state.discard.pop(); state.hands[1].push(card); state.drawnDiscardId = card.id; }
     else if (state.stock.length) state.hands[1].push(state.stock.pop());
-    else if (top) state.hands[1].push(state.discard.pop());
+    state.drawnDiscardId = useDiscard ? state.drawnDiscardId : null;
     state.drawn = true;
   }
 
   function aiDiscard() {
-    let best = null;
-    state.hands[1].forEach((card, index) => {
-      const hand = state.hands[1].slice(); hand.splice(index, 1);
-      const candidate = { index, deadwood: deadwood(hand), value: cardValue(card) };
-      if (!best || candidate.deadwood < best.deadwood || (candidate.deadwood === best.deadwood && candidate.value > best.value)) best = candidate;
-    });
+    const difficulty = storedDifficulty();
+    const plans = discardPlans(state.hands[1], state.drawnDiscardId);
+    let best;
+    if (difficulty === "easy") best = plans[Math.floor(Math.random() * plans.length)];
+    else {
+      plans.sort((a, b) => a.deadwood - b.deadwood || (difficulty === "hard" ? b.potential - a.potential || a.danger - b.danger : 0) || cardValue(b.card) - cardValue(a.card));
+      best = plans[0];
+    }
     const hand = state.hands[1].slice(); hand.splice(best.index, 1);
-    state.discard.push(state.hands[1].splice(best.index, 1)[0]); state.drawn = false;
-    if (deadwood(hand) <= 10) roundResult(1, hand);
+    state.discard.push(state.hands[1].splice(best.index, 1)[0]); state.drawn = false; state.drawnDiscardId = null;
+    const handDeadwood = deadwood(hand);
+    const shouldKnock = handDeadwood === 0 || (difficulty === "easy" ? handDeadwood <= 4 && Math.random() > 0.25 : difficulty === "medium" ? handDeadwood <= 10 : handDeadwood <= 5 || (state.stock.length <= 10 && handDeadwood <= 8));
+    if (shouldKnock) roundResult(1, hand);
     else { state.active = 0; state.aiPending = false; }
     render();
   }
@@ -188,26 +259,29 @@
     els.stock.textContent = String(state.stock.length); els.discard.textContent = top ? cardText(top) : "—";
     els.count1.textContent = state.hands[0].length + " cards · " + state.scores[0] + " points";
     els.count2.textContent = (state.computer ? "Computer" : "Player 2") + " · " + state.hands[1].length + " cards · " + state.scores[1] + " points";
-    const selectedHand = state.selected === null ? null : state.hands[state.active].slice();
+    const selectedIsForbidden = state.selected !== null && state.hands[state.active][state.selected]?.id === state.drawnDiscardId;
+    const selectedHand = state.selected === null || selectedIsForbidden ? null : state.hands[state.active].slice();
     if (selectedHand) selectedHand.splice(state.selected, 1);
     const canKnock = Boolean(selectedHand && deadwood(selectedHand) <= 10);
     els.draw.disabled = !canAct() || state.drawn || !state.stock.length;
     els.drawDiscard.disabled = !canAct() || state.drawn || !state.discard.length;
-    els.discardCard.disabled = !canAct() || !state.drawn || state.selected === null;
+    els.discardCard.disabled = !canAct() || !state.drawn || state.selected === null || selectedIsForbidden;
     els.knock.disabled = !canAct() || !canKnock;
     els.passPanel.hidden = state.computer || state.result !== null || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
-    els.note.textContent = state.result ? "Start a new deal to test another knock or gin." : "Knock is allowed when the discarded hand has 10 or fewer deadwood points. A zero-deadwood hand scores gin.";
+    els.note.textContent = state.result ? "Start a new deal for another hand." : "Knock is allowed after discarding with 10 or fewer deadwood points. Opponents may lay off after a knock, but not after gin.";
   }
 
-  els.mode.addEventListener("change", () => { newGame(); });
+  els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
+  els.difficulty.addEventListener("change", saveDifficulty);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame);
   els.draw.addEventListener("click", drawFromStock); els.drawDiscard.addEventListener("click", drawFromDiscard);
   els.discardCard.addEventListener("click", () => discard(state.selected, false)); els.knock.addEventListener("click", () => discard(state.selected, true));
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
+  applyDifficulty();
   newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

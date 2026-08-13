@@ -470,3 +470,20 @@ body {
   min-height: 40px !important;
   height: 40px !important;
 }
+
+.release-footer {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:8px;
+  padding:18px 4px max(18px,env(safe-area-inset-bottom));
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.release-footer a {
+  color:var(--text);
+  font-weight:800;
+}

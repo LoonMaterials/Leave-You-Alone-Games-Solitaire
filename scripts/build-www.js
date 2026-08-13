@@ -11,6 +11,8 @@ const files = [
   "i18n.js",
   "help-i18n.js",
   "manifest.webmanifest",
+  "privacy.html",
+  "support.html",
   "sw.js",
 ];
 

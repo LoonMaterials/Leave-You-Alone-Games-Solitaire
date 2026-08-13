@@ -1,32 +1,33 @@
 # Privacy Policy
 
+Effective August 13, 2026
+
 Leave Me Alone Games does not collect, sell, share, or transmit personal data.
 
-## Data Collection
-
-The app does not use:
+## What the app does not use
 
 - Accounts
 - Ads
-- Analytics
-- Tracking pixels
+- Analytics or tracking pixels
 - Remote databases
-- Third-party SDKs
-- External network services
+- Social features or chat
+- Location, contacts, camera, or microphone
+- Third-party advertising SDKs
 
-## Local Storage
+## Information stored on the device
 
-The app stores a small amount of data locally on the player's device:
+The app uses local browser storage for preferences such as theme, language, favorites, difficulty, and game settings. Some games also save the current game or session so it can continue on the same device. This data is not sent to the developer or another company.
 
-- Selected game settings
-- Current in-session game state
+Players can remove locally saved information with **Reset App Data** on the main menu, by clearing the app’s storage, or by uninstalling the app.
 
-This data stays on the device. It is not sent to the developer or any third party.
+## Network access
+
+The native iOS and Android apps package the game files on the device and do not require a network connection to play. The hosted web version loads its own files from its host and does not contact advertising, analytics, or tracking services.
 
 ## Children
 
-The app contains general games and does not knowingly collect information from children or adults.
+The app contains general-audience card, board, dice, solitaire, and puzzle games. Because it does not collect personal information, it does not knowingly collect information from children or adults.
 
-## Contact
+## Support and changes
 
-For support or privacy questions, use the support contact listed on the app store page or GitHub repository.
+Use [support.html](support.html) or the project’s public issue tracker for support or privacy questions. If this policy changes, its effective date will be updated before the revised app is published.

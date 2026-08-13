@@ -5,3 +5,6 @@ Thumbs.db
 node_modules/
 .pnpm-store/
 www/
+android/upload-keystore.properties
+android/*.jks
+android/*.keystore

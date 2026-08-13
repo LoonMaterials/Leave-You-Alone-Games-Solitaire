@@ -1,25 +1,29 @@
 {
   "name": "leave-me-alone-games",
-  "version": "1.0.0",
+  "version": "3.2.0",
   "description": "A quiet, offline game collection built with plain HTML, CSS, and JavaScript.",
   "main": "index.html",
   "scripts": {
     "postinstall": "node scripts/build-www.js",
     "build": "node scripts/build-www.js",
-    "test:games": "node scripts/test-new-games.js",
+    "test:games": "node scripts/test-all-games.js && node scripts/test-new-games.js && node scripts/test-card-rules.js && node scripts/test-cribbage-scoring.js",
+    "test:release": "node scripts/test-release-readiness.js",
+    "test:native-sync": "node scripts/test-native-sync.js",
+    "test:all": "node scripts/test-all-games.js && node scripts/test-new-games.js && node scripts/test-card-rules.js && node scripts/test-cribbage-scoring.js && node scripts/test-release-readiness.js",
+    "release:verify": "node scripts/test-all-games.js && node scripts/test-new-games.js && node scripts/test-card-rules.js && node scripts/test-cribbage-scoring.js && node scripts/test-release-readiness.js && node scripts/build-www.js",
     "prepare:web": "node scripts/build-www.js",
     "prepare:ios": "npm run prepare:web",
     "prepare:android": "npm run prepare:web",
     "clean:ios-web": "node scripts/clean-ios-public.js",
-    "sync": "npm run prepare:web && npx cap sync",
-    "sync:ios": "npm run prepare:ios && npm run clean:ios-web && npx cap sync ios",
-    "open:ios": "npm run sync:ios && npx cap open ios",
-    "sync:android": "npm run prepare:android && npx cap sync android",
-    "open:android": "npm run sync:android && npx cap open android",
-    "ios:sync": "npm run sync:ios",
-    "ios:open": "npm run open:ios",
-    "android:sync": "npm run sync:android",
-    "android:open": "npm run open:android"
+    "sync": "node scripts/build-www.js && cap sync",
+    "sync:ios": "node scripts/build-www.js && node scripts/clean-ios-public.js && cap sync ios",
+    "open:ios": "node scripts/build-www.js && node scripts/clean-ios-public.js && cap sync ios && cap open ios",
+    "sync:android": "node scripts/build-www.js && cap sync android",
+    "open:android": "node scripts/build-www.js && cap sync android && cap open android",
+    "ios:sync": "node scripts/build-www.js && node scripts/clean-ios-public.js && cap sync ios",
+    "ios:open": "node scripts/build-www.js && node scripts/clean-ios-public.js && cap sync ios && cap open ios",
+    "android:sync": "node scripts/build-www.js && cap sync android",
+    "android:open": "node scripts/build-www.js && cap sync android && cap open android"
   },
   "repository": {
     "type": "git",
@@ -34,9 +38,9 @@
   },
   "homepage": "https://github.com/LoonMaterials/Leave-Me-Alone-Games#readme",
   "dependencies": {
-    "@capacitor/android": "^8.4.0",
-    "@capacitor/cli": "^8.4.0",
-    "@capacitor/core": "^8.4.0",
-    "@capacitor/ios": "^8.4.0"
+    "@capacitor/android": "8.5.0",
+    "@capacitor/cli": "8.5.0",
+    "@capacitor/core": "8.5.0",
+    "@capacitor/ios": "8.5.0"
   }
 }

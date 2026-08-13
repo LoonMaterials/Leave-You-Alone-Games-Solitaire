@@ -1,119 +1,64 @@
-# iOS Store Prep
+# iOS and Google Play Store Preparation
 
-This project is currently a static web/PWA version of the app. It is ready for browser play and home-screen installation, but native store release requires platform packaging.
+Version 3.2.0 is organized as one authoritative set of 31 self-contained game folders plus separate Capacitor wrappers for iOS and Android.
 
-## Current Build Status
+## Prepared here
 
-Ready:
+- App name: Leave Me Alone Games
+- Bundle/application ID: `com.loonmaterials.leavemealonegames`
+- iOS marketing version: 3.2.0, build 1
+- Android version name: 3.2.0, version code 32
+- Android target and compile SDK: API 36
+- Android upload-key configuration that reads a private ignored properties file
+- iOS privacy manifest declaring no tracking and no collected data
+- No Android Internet permission and no automatic local-data backup
+- Privacy policy and support pages ready for public hosting
+- Store listing copy, privacy answers, rating guidance, release notes, and a publishing checklist
+- Offline bundle and automated checks covering all game folders
 
-- Offline-capable PWA shell
-- Web app manifest
-- iPhone home-screen metadata
-- App icons at 180, 192, and 512 px
-- No ads
-- No accounts
-- No analytics
-- No tracking scripts
-- No external network calls except service worker requests for same-origin app files
-- Mobile portrait and landscape layouts
-- Separate game folders under `games/`
-- Klondike Solitaire
-- FreeCell
-- Spider Solitaire
-- Pyramid Solitaire
-- Tri-Peaks Solitaire
-- Golf Solitaire
-- Yukon Solitaire
-- Rummy (initial meld and computer-play build)
-- Gin Rummy (initial meld, knock, and computer-play build)
-- Hearts (initial legal-trick and scoring build)
-- Spades (initial bidding, legal-trick, and scoring build)
-- 83-Maine's Card Game (initial auction, partnership, and trick AI build)
-- Cribbage (initial crib, pegging, scoring, and computer-play build)
-- Per-game controls and persistence
-- Local/session persistence
+Run `npm run release:verify` before creating either native release.
 
-The six newest games now have first playable rules and computer behavior for
-testing: meld detection and deadwood/knock scoring for Rummy and Gin Rummy;
-follow-suit, hearts-breaking, bidding, trick, and deal scoring for Hearts and
-Spades; the auction, kitty/discard, partnership trick flow, and contract scoring
-for 83; and crib selection, pegging, hand scoring, and a computer opponent for
-Cribbage. Advanced strategy, rule variants, passing conventions, and broad
-probabilistic AI testing remain later work.
+## Current platform requirements
 
-Needs before store submission:
+Google Play requires new apps and updates submitted from August 31, 2026 onward to target Android 16 / API 36 or higher. This project already targets API 36. See Google’s [target API level requirements](https://developer.android.com/google/play/requirements/target-sdk).
 
-- Final app icon artwork
-- Screenshots
-- Store listing copy
-- Support URL
-- Hosted privacy policy URL
-- Age rating answers
-- Real-device test pass
-- Final native iOS wrapper testing/signing
-- Final native Android wrapper testing/signing
+Apple requires App Store uploads to use Xcode 26 or later and the iOS 26 SDK or later as of April 28, 2026. Apple’s requirements can change, so confirm the [upcoming submission requirements](https://developer.apple.com/news/upcoming-requirements/) again on release day.
 
-## iOS Path
+## What Windows can and cannot finish
 
-Native iOS App Store release requires macOS and Xcode.
+Windows can verify all web game source, build the offline bundle, sync both wrappers, inspect iOS project structure, and build an Android AAB when the matching SDK and Java tools are installed.
 
-Current wrapper:
+Windows cannot create or validate an App Store archive. The iOS release still needs a Mac for Xcode compilation, signing, simulator/real-device testing, archive validation, TestFlight, and upload.
 
-- Capacitor iOS project in `ios/`
-- Source files are copied into a clean generated `www/` folder with `npm run prepare:ios`
-- Xcode receives the current app files with `npm run sync:ios`
-- Rebuild, sync, and open the Xcode workspace with `npm run open:ios`
-- Test on real iPhone and iPad in portrait and landscape
-- Distribute through TestFlight before App Review
+Store-console work also remains account-bound: developer enrollment, application records, agreements, content/age questionnaires, screenshots from release builds, privacy/support URL verification, test tracks, and final submission.
 
-Fresh Mac clone:
+## Android release path
 
-1. Install Node.js.
-2. Install Xcode from the Mac App Store.
-3. Clone the repository.
-4. Run `npm install`. This automatically rebuilds the complete `www/` bundle.
-5. Run `npm run open:ios`.
-6. In Xcode, choose a team/signing profile and test on a simulator or real device.
+1. Securely create the Google Play upload key.
+2. Copy `android/upload-keystore.properties.example` to `android/upload-keystore.properties` and enter the private key path, alias, and passwords.
+3. Run `npm run release:verify` and `npm run sync:android`.
+4. Build `bundleRelease` in Android Studio or Gradle.
+5. Upload the signed AAB to Play Console Internal testing and install the Play-generated artifact on real hardware.
+6. Complete Data safety, Content rating, Target audience, App access, Store listing, and production access requirements.
 
-The `open:ios` command always clears and rebuilds `www/` before Capacitor syncs,
-then removes `ios/App/App/public/` before Capacitor copies the new bundle, so
-stale or incomplete web files cannot silently carry into the iPhone build.
-Do not manually copy files into `www/` or `ios/App/App/public/`; both folders are
-generated from the root web app files.
+Google Play App Signing keeps the distribution signing key while the developer signs uploads with the upload key. See [Android app signing](https://developer.android.com/studio/publish/app-signing).
 
-Apple requirement to account for:
+## iOS release path
 
-- Check the current Xcode and SDK requirement before uploading to App Store Connect.
+1. Use a Mac with the App Store’s required Xcode/iOS SDK.
+2. Run `npm install` and `npm run sync:ios`.
+3. Open `ios/App/App.xcodeproj`, select the Apple team, and confirm the bundle ID and version.
+4. Test on current iPhone and iPad hardware, including offline launch and pass-and-play hand privacy.
+5. Archive and validate in Xcode, upload to App Store Connect, and install the processed build through TestFlight.
+6. Complete App Privacy, age rating, export compliance, categories, URLs, screenshots, review notes, and release controls.
 
-## Android Path
+## Release materials
 
-Native Google Play release uses the separate Capacitor Android project in
-`android/`. Android Studio is required for emulator/device testing and release
-signing.
+- Store copy and console answers: `store-assets/STORE_LISTING.md`
+- Full account/device checklist: `store-assets/PUBLISHING_CHECKLIST.md`
+- Exact verified results and remaining release gates: `store-assets/VERIFICATION_REPORT.md`
+- Privacy page: `privacy.html`
+- Support page: `support.html`
+- Markdown privacy source: `PRIVACY.md`
 
-- Rebuild and sync with `npm run sync:android`
-- Open Android Studio with `npm run open:android`
-- Test on a physical Android device and an emulator
-- Configure the Android application ID, app icon, version code, and signing key
-- Build a signed Android App Bundle for Google Play
-- Complete Play Console testing, content rating, data-safety, screenshots, and
-  store listing requirements
-
-The Android wrapper receives the same generated `www/` bundle as iOS. Game
-source remains isolated in its own folder under `games/`; platform projects do
-not contain duplicate copies of game logic.
-
-## Recommended Next Milestones
-
-1. Confirm the GitHub Pages version is stable.
-2. Use Lighthouse or Chrome DevTools to verify PWA installability.
-3. Create final app icon artwork.
-4. Capture phone screenshots.
-5. Keep the Capacitor iOS wrapper synced with `npm run sync:ios`.
-6. Keep the Capacitor Android wrapper synced with `npm run sync:android`.
-7. Create store accounts:
-   - Apple Developer Program
-   - Google Play Console
-8. Run beta testing:
-   - TestFlight for iOS
-   - Internal testing for Android
+The expected GitHub Pages URLs in the listing document are not claimed as live until the updated site is deployed and checked without signing in.

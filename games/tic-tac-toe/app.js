@@ -2,17 +2,22 @@
   "use strict";
   const STORAGE_KEY = "leave-me-alone-tic-tac-toe-current-game";
   const MODE_KEY = "leave-me-alone-tic-tac-toe-mode";
+  const DIFFICULTY_KEY = "leave-me-alone-tic-tac-toe-difficulty";
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const WIN_LINES = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]];
   const MODES = new Set(["computer", "two-player"]);
-  const els = { board: document.getElementById("board"), status: document.getElementById("status"), undo: document.getElementById("undo"), newGame: document.getElementById("new-game"), mode: document.getElementById("game-mode") };
+  const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
+  const els = { board: document.getElementById("board"), status: document.getElementById("status"), undo: document.getElementById("undo"), newGame: document.getElementById("new-game"), mode: document.getElementById("game-mode"), difficulty: document.getElementById("difficulty") };
   let state = null, undoSnapshot = null, lastTapAt = 0;
   function t(key, values) { return window.LMAG_I18N ? window.LMAG_I18N.t(key, values) : key; }
   function storedMode() { try { const mode = localStorage.getItem(MODE_KEY); return MODES.has(mode) ? mode : "computer"; } catch { return "computer"; } }
+  function storedDifficulty() { try { const difficulty = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(difficulty) ? difficulty : "medium"; } catch { return "medium"; } }
   function isTwoPlayer() { return storedMode() === "two-player"; }
-  function applyMode() { if (els.mode) els.mode.value = storedMode(); }
+  function applyMode() { if (els.mode) els.mode.value = storedMode(); if (els.difficulty) els.difficulty.disabled = isTwoPlayer(); }
+  function applyDifficulty() { if (els.difficulty) els.difficulty.value = storedDifficulty(); }
   function saveMode() { if (!els.mode) return; try { localStorage.setItem(MODE_KEY, MODES.has(els.mode.value) ? els.mode.value : "computer"); } catch {} applyMode(); startNewGame(); }
+  function saveDifficulty() { if (!els.difficulty) return; try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} startNewGame(); }
   function applyTheme() { try { const theme = localStorage.getItem(THEME_KEY); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; } }
   function freshState() { return { board: Array(9).fill(""), turn: "x", winner: null, winningLine: [] }; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -42,6 +47,38 @@
     if (corners.length && Math.random() < 0.65) return corners[Math.floor(Math.random() * corners.length)];
     return cells[Math.floor(Math.random() * cells.length)];
   }
+  function minimax(board, turn, depth) {
+    const result = winnerFor(board).winner;
+    if (result === "o") return 10 - depth;
+    if (result === "x") return depth - 10;
+    if (result === "draw") return 0;
+    const scores = emptyCells(board).map((index) => {
+      const next = board.slice();
+      next[index] = turn;
+      return minimax(next, turn === "o" ? "x" : "o", depth + 1);
+    });
+    return turn === "o" ? Math.max(...scores) : Math.min(...scores);
+  }
+  function hardComputerMove() {
+    const cells = emptyCells(state.board);
+    if (!cells.length) return -1;
+    const ranked = cells.map((index) => {
+      const next = state.board.slice();
+      next[index] = "o";
+      return { index, score: minimax(next, "x", 0) };
+    });
+    const best = Math.max(...ranked.map((item) => item.score));
+    const equallyBest = ranked.filter((item) => item.score === best);
+    return equallyBest[Math.floor(Math.random() * equallyBest.length)].index;
+  }
+  function chooseComputerMove() {
+    const cells = emptyCells(state.board);
+    if (!cells.length) return -1;
+    const difficulty = storedDifficulty();
+    if (difficulty === "easy") return cells[Math.floor(Math.random() * cells.length)];
+    if (difficulty === "hard") return hardComputerMove();
+    return mediumComputerMove();
+  }
   function updateWinner() {
     const result = winnerFor(state.board);
     state.winner = result.winner;
@@ -49,7 +86,7 @@
   }
   function computerMove() {
     if (isTwoPlayer() || state.winner || state.turn !== "o") return;
-    const index = mediumComputerMove();
+    const index = chooseComputerMove();
     if (index >= 0) state.board[index] = "o";
     updateWinner();
     state.turn = "x";
@@ -95,7 +132,7 @@
   function preventGestureZoom(event) { event.preventDefault(); }
   function applyLanguage() { if (window.LMAG_I18N) window.LMAG_I18N.apply(document); render(); }
   function registerServiceWorker() { if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {})); }
-  els.newGame.addEventListener("click", startNewGame); els.undo.addEventListener("click", undo); if (els.mode) els.mode.addEventListener("change", saveMode);
+  els.newGame.addEventListener("click", startNewGame); els.undo.addEventListener("click", undo); if (els.mode) els.mode.addEventListener("change", saveMode); if (els.difficulty) els.difficulty.addEventListener("change", saveDifficulty);
   document.addEventListener("contextmenu", (event) => event.preventDefault()); document.addEventListener("dblclick", preventBrowserDoubleClick, { capture: true }); document.addEventListener("dragstart", (event) => event.preventDefault()); document.addEventListener("touchmove", preventViewportMove, { passive: false }); document.addEventListener("gesturestart", preventGestureZoom); document.addEventListener("gesturechange", preventGestureZoom); document.addEventListener("gestureend", preventGestureZoom); document.addEventListener("lmag:languagechange", applyLanguage);
-  applyTheme(); applyMode(); state = loadState() || freshState(); render(); registerServiceWorker();
+  applyTheme(); applyDifficulty(); applyMode(); state = loadState() || freshState(); render(); registerServiceWorker();
 })();

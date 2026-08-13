@@ -61,7 +61,7 @@
       shutTheBoxTitle: "Shut the Box",
       shutTheBoxMeta: "Computer or 2 players · same device",
       puzzleGames: "Puzzle Games",
-      puzzleGamesMeta: "Seven quiet puzzles, coming next.",
+      puzzleGamesMeta: "Seven quiet puzzles, ready to play.",
       sudokuTitle: "Sudoku",
       sudokuMeta: "Logic number grids",
       kakuroTitle: "Kakuro",
