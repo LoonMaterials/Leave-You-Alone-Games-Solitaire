@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "chess", href: "games/chess/index.html", title: document.querySelector("h1")?.textContent?.trim() || "chess", playedAt: Date.now() }));
+  } catch {}
 
   const STORAGE_KEY = "leave-me-alone-chess-current-game";
   const DIFFICULTY_KEY = "leave-me-alone-chess-difficulty";
@@ -175,12 +178,12 @@
   }
 
   function saveState() {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
   function loadState() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!saved || saved.version !== SAVE_VERSION || !Array.isArray(saved.board) || saved.board.length !== 8) return null;
       return saved;
     } catch {

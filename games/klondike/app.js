@@ -1,4 +1,7 @@
 (function () {
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "klondike", href: "games/klondike/index.html", title: document.querySelector("h1")?.textContent?.trim() || "Klondike", playedAt: Date.now() }));
+  } catch {}
   const SUITS = ["S", "H", "D", "C"];
   const SUIT_LABELS = { S: "\u2660", H: "\u2665", D: "\u2666", C: "\u2663" };
   const RANK_LABELS = { 1: "A", 11: "J", 12: "Q", 13: "K" };
@@ -834,7 +837,7 @@
 
   function saveGame() {
     try {
-      sessionStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({
         stock: state.stock,
         waste: state.waste,
         foundations: state.foundations,
@@ -850,7 +853,7 @@
 
   function restoreSavedGame() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(GAME_STORAGE_KEY));
+      const saved = JSON.parse(localStorage.getItem(GAME_STORAGE_KEY));
       if (!isSavedGame(saved)) return false;
 
       state.stock = saved.stock.map(copyCard);

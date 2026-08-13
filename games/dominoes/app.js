@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "dominoes", href: "games/dominoes/index.html", title: document.querySelector("h1")?.textContent?.trim() || "dominoes", playedAt: Date.now() }));
+  } catch {}
   const STORAGE_KEY = "leave-me-alone-dominoes-current-game";
   const SAVE_VERSION = 2;
   const DIFFICULTY_KEY = "leave-me-alone-dominoes-difficulty";
@@ -29,8 +32,8 @@
     return { version: SAVE_VERSION, player, computer, boneyard, chain: [starter], left: starter.a, right: starter.b, turn: "p", winner: null, message: "" };
   }
   function clone(source) { return JSON.parse(JSON.stringify(source)); }
-  function saveState() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  function loadState() { try { const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); return saved?.version === SAVE_VERSION && saved?.player && saved?.computer && saved?.chain ? saved : null; } catch { return null; } }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); return saved?.version === SAVE_VERSION && saved?.player && saved?.computer && saved?.chain ? saved : null; } catch { return null; } }
   function canPlay(tile) { return tile.a === state.left || tile.b === state.left || tile.a === state.right || tile.b === state.right; }
   function playableSides(tile) {
     const sides = [];

@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "2048", href: "games/2048/index.html", title: document.querySelector("h1")?.textContent?.trim() || "2048", playedAt: Date.now() }));
+  } catch {}
   const STORAGE_KEY = "leave-me-alone-2048-current-game";
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
@@ -10,8 +13,8 @@
   function applyTheme() { try { const theme = localStorage.getItem(THEME_KEY); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; } }
   function emptyBoard() { return Array.from({ length: SIZE }, () => Array(SIZE).fill(0)); }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
-  function saveState() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  function loadState() { try { const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); return saved?.board?.length === SIZE ? saved : null; } catch { return null; } }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); return saved?.board?.length === SIZE ? saved : null; } catch { return null; } }
   function emptyCells(board) { const cells = []; board.forEach((row, r) => row.forEach((value, c) => { if (!value) cells.push([r, c]); })); return cells; }
   function addTile(board) { const cells = emptyCells(board); if (!cells.length) return; const [r, c] = cells[Math.floor(Math.random() * cells.length)]; board[r][c] = Math.random() < .9 ? 2 : 4; }
   function freshState() { const board = emptyBoard(); addTile(board); addTile(board); return { board, score: 0, won: false, over: false }; }

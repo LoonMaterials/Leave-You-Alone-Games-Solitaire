@@ -1,11 +1,16 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "rummy", href: "games/rummy/index.html", title: document.querySelector("h1")?.textContent?.trim() || "rummy", playedAt: Date.now() }));
+  } catch {}
 
   const SUITS = ["S", "H", "D", "C"];
   const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const SYMBOLS = { S: "♠", H: "♥", D: "♦", C: "♣" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const DIFFICULTY_KEY = "leave-me-alone-rummy-difficulty";
+  const SAVE_KEY = "leave-me-alone-rummy-save-v1";
+  const HAND_ORDER_KEY = "leave-me-alone-rummy-hand-order";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const els = {
     status: document.getElementById("status"), hands: document.getElementById("hands"), melds: document.getElementById("melds"),
@@ -13,13 +18,31 @@
     draw: document.getElementById("draw-card"), drawDiscard: document.getElementById("draw-discard"), layMeld: document.getElementById("lay-meld"),
     discardCard: document.getElementById("discard-card"), goOut: document.getElementById("go-out"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"),
     playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"),
-    showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note")
+    showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note"), handOrder: document.getElementById("hand-order")
   };
   let state;
 
   function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
   function applyDifficulty() { els.difficulty.value = storedDifficulty(); els.difficulty.disabled = !els.mode.checked; }
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
+  function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
+  function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function orderedHand(hand) {
+    if (els.handOrder.value === "dealt") return hand.slice();
+    return hand.slice().sort((a, b) => els.handOrder.value === "rank" ? (runRank(a) - runRank(b) || SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit)) : (SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit) || runRank(a) - runRank(b)));
+  }
+  function saveState() { if (state) try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, aiPending: false })); } catch {} }
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.stock) || !Array.isArray(saved.discard)) return null;
+      saved.aiPending = false;
+      saved.selected = [];
+      saved.revealedPlayer = saved.computer ? 0 : -1;
+      saved.lastActive = saved.active;
+      return saved;
+    } catch { return null; }
+  }
 
   function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
   function canAct() { return state.winner === null && (!state.computer || state.active === 0) && handVisible(state.active); }
@@ -183,8 +206,19 @@
 
   function finishRound(winner) {
     state.winner = winner;
-    state.score[winner] += state.hands.reduce((total, hand, player) => total + (player === winner ? 0 : hand.reduce((sum, card) => sum + cardValue(card), 0)), 0);
+    if (winner >= 0) state.score[winner] += state.hands.reduce((total, hand, player) => total + (player === winner ? 0 : hand.reduce((sum, card) => sum + cardValue(card), 0)), 0);
     state.aiPending = false;
+  }
+
+  function finishLastCardShowdown() {
+    if (state.winner !== null || !state.hands.every((hand) => hand.length === 1)) return false;
+    const canLayOff = state.hands.some((hand) => state.melds.some((meld) => isMeld(meld.cards.concat(hand[0]))));
+    if (canLayOff) return false;
+    const values = state.hands.map((hand) => cardValue(hand[0]));
+    const low = Math.min(...values);
+    const leaders = values.map((value, player) => value === low ? player : -1).filter((player) => player >= 0);
+    finishRound(leaders.length === 1 ? leaders[0] : -1);
+    return true;
   }
 
   function layMeld() {
@@ -228,6 +262,7 @@
     state.drawnDiscardId = null;
     state.selected = [];
     if (!state.hands[player].length) finishRound(player);
+    else if (finishLastCardShowdown()) { render(); return; }
     else { state.active = (player + 1) % state.playerCount; render(); scheduleAI(); return; }
     render();
   }
@@ -273,6 +308,7 @@
     else choice = bestDiscardPlan(state.hands[player], drawnDiscardId, difficulty === "hard") || candidates[0];
     state.discard.push(state.hands[player].splice(choice ? choice.index : 0, 1)[0]);
     state.drawn = false;
+    if (finishLastCardShowdown()) { state.aiPending = false; render(); return; }
     state.active = (player + 1) % state.playerCount;
     state.aiPending = false;
     render();
@@ -331,13 +367,13 @@
       box.appendChild(heading);
       const row = document.createElement("div");
       row.className = "card-row";
-      hand.forEach((card) => row.appendChild(cardButton(card, player === state.active && canAct(), state.selected.includes(card.id), () => selectCard(card.id), !handVisible(player))));
+      orderedHand(hand).forEach((card) => row.appendChild(cardButton(card, player === state.active && canAct(), state.selected.includes(card.id), () => selectCard(card.id), !handVisible(player))));
       box.appendChild(row);
       els.hands.appendChild(box);
     });
     const chosen = selectedCards(state.active);
     const top = state.discard[state.discard.length - 1];
-    els.status.textContent = state.winner !== null ? "Player " + (state.winner + 1) + " went out." : state.computer && state.active === 1 ? "Computer is thinking…" : canAct() ? state.drawn ? "Lay melds, add to a meld, or select one card to discard." : "Draw a card, or go out now if all seven cards form melds." : "Pass the device to Player " + (state.active + 1) + ".";
+    els.status.textContent = state.winner === -1 ? "Last-card showdown tied; the hand is a draw." : state.winner !== null ? "Player " + (state.winner + 1) + " won the hand." : state.computer && state.active === 1 ? "Computer is thinking…" : canAct() ? state.drawn ? "Lay melds, add to a meld, or select one card to discard." : "Draw a card, or go out now if all seven cards form melds." : "Pass the device to Player " + (state.active + 1) + ".";
     els.stock.textContent = String(state.stock.length);
     els.discard.textContent = top ? cardText(top) : "—";
     els.count1.textContent = state.hands[0].length + " cards · " + state.score[0] + " points";
@@ -350,12 +386,14 @@
     els.passPanel.hidden = state.computer || state.winner !== null || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
-    els.note.textContent = state.winner === null ? "Rummy uses seven-card hands. Meld sets or same-suit runs on the table; unlike Gin Rummy, players may lay off cards during play." : "Unmelded cards left in the other hands were added to the winner's score.";
+    els.note.textContent = state.winner === null ? "Rummy uses seven-card hands. Meld sets or same-suit runs on the table; unlike Gin Rummy, players may lay off cards during play." : state.winner === -1 ? "Equal last-card values end the hand as a draw with no points awarded." : "Unmelded cards left in the other hands were added to the winner's score.";
     renderMelds();
+    saveState();
   }
 
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
+  els.handOrder.addEventListener("change", saveHandOrder);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame);
@@ -366,6 +404,15 @@
   els.goOut.addEventListener("click", goOut);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
   applyDifficulty();
-  newGame();
+  els.handOrder.value = storedHandOrder();
+  state = loadState();
+  if (state) {
+    els.mode.checked = state.computer;
+    els.playerCount.value = String(state.playerCount);
+    els.playerCount.disabled = state.computer;
+    applyDifficulty();
+    render();
+    scheduleAI();
+  } else newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

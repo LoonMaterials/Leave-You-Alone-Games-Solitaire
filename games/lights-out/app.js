@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "lights-out", href: "games/lights-out/index.html", title: document.querySelector("h1")?.textContent?.trim() || "lights-out", playedAt: Date.now() }));
+  } catch {}
   const STORAGE_KEY = "leave-me-alone-lights-out-current-game";
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
@@ -12,12 +15,12 @@
   function applyTheme() { try { const theme = localStorage.getItem(THEME_KEY); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; } }
   function emptyBoard(size = DEFAULT_SIZE) { return Array.from({ length: size }, () => Array(size).fill(false)); }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
-  function saveState() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function isValidSave(saved) {
     const size = saved?.size;
     return saved?.version === SAVE_VERSION && SIZES.includes(size) && saved?.board?.length === size && saved.board.every((row) => Array.isArray(row) && row.length === size);
   }
-  function loadState() { try { const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); return isValidSave(saved) ? saved : null; } catch { return null; } }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); return isValidSave(saved) ? saved : null; } catch { return null; } }
   function flipOn(board, row, col) { [[0,0], [1,0], [-1,0], [0,1], [0,-1]].forEach(([dr, dc]) => { const r = row + dr, c = col + dc; if (board[r]?.[c] !== undefined) board[r][c] = !board[r][c]; }); }
   function freshState() {
     const size = SIZES[Math.floor(Math.random() * SIZES.length)];

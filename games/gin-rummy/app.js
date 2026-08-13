@@ -1,24 +1,48 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "gin-rummy", href: "games/gin-rummy/index.html", title: document.querySelector("h1")?.textContent?.trim() || "gin-rummy", playedAt: Date.now() }));
+  } catch {}
 
   const SUITS = ["S", "H", "D", "C"];
   const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const SYMBOLS = { S: "♠", H: "♥", D: "♦", C: "♣" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const DIFFICULTY_KEY = "leave-me-alone-gin-rummy-difficulty";
+  const SAVE_KEY = "leave-me-alone-gin-rummy-save-v1";
+  const HAND_ORDER_KEY = "leave-me-alone-gin-rummy-hand-order";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const els = {
     status: document.getElementById("status"), hands: document.getElementById("hands"), stock: document.getElementById("stock-count"),
     discard: document.getElementById("discard-top"), count1: document.getElementById("count-1"), count2: document.getElementById("count-2"),
     draw: document.getElementById("draw-card"), drawDiscard: document.getElementById("draw-discard"), discardCard: document.getElementById("discard-card"),
     knock: document.getElementById("knock"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"),
-    passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note")
+    passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note"), handOrder: document.getElementById("hand-order")
   };
   let state;
 
   function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
   function applyDifficulty() { els.difficulty.value = storedDifficulty(); els.difficulty.disabled = !els.mode.checked; }
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
+  function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
+  function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function orderedEntries(hand) {
+    const entries = hand.map((card, index) => ({ card, index }));
+    if (els.handOrder.value === "dealt") return entries;
+    return entries.sort((a, b) => els.handOrder.value === "rank" ? (runRank(a.card) - runRank(b.card) || SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit)) : (SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) || runRank(a.card) - runRank(b.card)));
+  }
+  function saveState() { if (state) try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, aiPending: false })); } catch {} }
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.stock) || !Array.isArray(saved.discard)) return null;
+      saved.aiPending = false;
+      saved.selected = null;
+      saved.revealedPlayer = saved.computer ? 0 : -1;
+      saved.lastActive = saved.active;
+      return saved;
+    } catch { return null; }
+  }
 
   function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
   function canAct() { return state.result === null && (!state.computer || state.active === 0) && handVisible(state.active); }
@@ -251,7 +275,7 @@
       const box = document.createElement("div"); box.className = "player-box";
       const heading = document.createElement("h3"); heading.textContent = "Player " + (player + 1) + (state.active === player && !state.result ? " · active" : "") + (player === 1 && state.computer ? " · computer" : ""); box.appendChild(heading);
       const row = document.createElement("div"); row.className = "card-row";
-      hand.forEach((card, index) => row.appendChild(cardButton(card, player === state.active && canAct() && state.drawn, state.selected === index, () => selectCard(index), !handVisible(player))));
+      orderedEntries(hand).forEach(({ card, index }) => row.appendChild(cardButton(card, player === state.active && canAct() && state.drawn, state.selected === index, () => selectCard(index), !handVisible(player))));
       box.appendChild(row); els.hands.appendChild(box);
     });
     const top = state.discard[state.discard.length - 1];
@@ -271,10 +295,12 @@
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
     els.note.textContent = state.result ? "Start a new deal for another hand." : "Knock is allowed after discarding with 10 or fewer deadwood points. Opponents may lay off after a knock, but not after gin.";
+    saveState();
   }
 
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
+  els.handOrder.addEventListener("change", saveHandOrder);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame);
@@ -282,6 +308,15 @@
   els.discardCard.addEventListener("click", () => discard(state.selected, false)); els.knock.addEventListener("click", () => discard(state.selected, true));
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
   applyDifficulty();
-  newGame();
+  els.handOrder.value = storedHandOrder();
+  state = loadState();
+  if (state) {
+    els.mode.checked = state.computer;
+    els.playerCount.value = String(state.playerCount);
+    els.playerCount.disabled = state.computer;
+    applyDifficulty();
+    render();
+    scheduleAI();
+  } else newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

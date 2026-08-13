@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "tripeaks", href: "games/tripeaks/index.html", title: document.querySelector("h1")?.textContent?.trim() || "tripeaks", playedAt: Date.now() }));
+  } catch {}
 
   const SUITS = ["S", "H", "D", "C"];
   const SUIT_LABELS = { S: "\u2660", H: "\u2665", D: "\u2666", C: "\u2663" };
@@ -115,12 +118,12 @@
   }
 
   function saveState() {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
   function loadState() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!saved || !Array.isArray(saved.peaks) || !Array.isArray(saved.stock) || !Array.isArray(saved.waste)) return null;
       if (!Array.isArray(saved.removed)) saved.removed = [];
       return saved;

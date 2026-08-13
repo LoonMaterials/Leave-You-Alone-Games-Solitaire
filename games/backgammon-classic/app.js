@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "backgammon-classic", href: "games/backgammon-classic/index.html", title: document.querySelector("h1")?.textContent?.trim() || "backgammon-classic", playedAt: Date.now() }));
+  } catch {}
   const STORAGE_KEY = "leave-me-alone-backgammon-classic-current-game";
   const DIFFICULTY_KEY = "leave-me-alone-backgammon-classic-difficulty";
   const MODE_KEY = "leave-me-alone-backgammon-classic-mode";
@@ -26,8 +29,8 @@
     return { points, playerBar: 0, computerBar: 0, playerOff: 0, computerOff: 0, turn: "p", dice: [], winner: null };
   }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
-  function saveState() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  function loadState() { try { const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); return saved?.points?.length === POINTS ? saved : null; } catch { return null; } }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); return saved?.points?.length === POINTS ? saved : null; } catch { return null; } }
   function rollDice() { const a = 1 + Math.floor(Math.random() * 6), b = 1 + Math.floor(Math.random() * 6); state.dice = a === b ? [a, a, a, a] : [a, b]; }
   function ownerCount(point, owner) { return owner === "p" ? point.p : point.c; }
   function opponentCount(point, owner) { return owner === "p" ? point.c : point.p; }

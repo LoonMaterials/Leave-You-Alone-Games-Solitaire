@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "connect4", href: "games/connect4/index.html", title: document.querySelector("h1")?.textContent?.trim() || "connect4", playedAt: Date.now() }));
+  } catch {}
   const STORAGE_KEY = "leave-me-alone-connect4-current-game";
   const DIFFICULTY_KEY = "leave-me-alone-connect4-difficulty";
   const MODE_KEY = "leave-me-alone-connect4-mode";
@@ -21,8 +24,8 @@
   function applyTheme() { try { const theme = localStorage.getItem(THEME_KEY); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; } }
   function freshState() { return { board: Array.from({ length: ROWS }, () => Array(COLS).fill(null)), turn: "r", winner: null }; }
   function clone(source) { return JSON.parse(JSON.stringify(source)); }
-  function saveState() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  function loadState() { try { const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); return saved?.board?.length === ROWS ? saved : null; } catch { return null; } }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); return saved?.board?.length === ROWS ? saved : null; } catch { return null; } }
   function openRowFor(board, col) { for (let row = ROWS - 1; row >= 0; row -= 1) if (!board[row][col]) return row; return -1; }
   function openRow(col) { return openRowFor(state.board, col); }
   function legalColsFor(board) { return Array.from({ length: COLS }, (_, col) => col).filter(col => openRowFor(board, col) >= 0); }

@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "kakuro", href: "games/kakuro/index.html", title: document.querySelector("h1")?.textContent?.trim() || "kakuro", playedAt: Date.now() }));
+  } catch {}
 
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
@@ -214,12 +217,12 @@
   }
 
   function save() {
-    try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
   }
 
   function load() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(KEY));
+      const saved = JSON.parse(localStorage.getItem(KEY));
       if (saved?.version !== SAVE_VERSION || !saved.puzzle?.solution || !saved.values) return fresh();
       return saved;
     } catch {

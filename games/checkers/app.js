@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "checkers", href: "games/checkers/index.html", title: document.querySelector("h1")?.textContent?.trim() || "checkers", playedAt: Date.now() }));
+  } catch {}
   const STORAGE_KEY = "leave-me-alone-checkers-current-game";
   const SAVE_VERSION = 2;
   const DIFFICULTY_KEY = "leave-me-alone-checkers-difficulty";
@@ -31,8 +34,8 @@
   }
   function freshState() { return { version: SAVE_VERSION, board: freshBoard(), turn: RED, winner: null, mustContinue: null }; }
   function clone(source) { return JSON.parse(JSON.stringify(source)); }
-  function saveState() { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  function loadState() { try { const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); return saved?.version === SAVE_VERSION && saved?.board?.length === BOARD_SIZE ? saved : null; } catch { return null; } }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); return saved?.version === SAVE_VERSION && saved?.board?.length === BOARD_SIZE ? saved : null; } catch { return null; } }
   function opponent(color) { return color === RED ? BLACK : RED; }
   function inBounds(row, col) { return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE; }
   function directions(piece) { return piece.king ? [[-1,-1],[-1,1],[1,-1],[1,1]] : piece.color === RED ? [[-1,-1],[-1,1]] : [[1,-1],[1,1]]; }

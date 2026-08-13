@@ -64,7 +64,7 @@ function expect(condition, label) { if (!condition) throw new Error(label); }
 function ids(cards) { return cards.map((item) => item.id).sort().join(","); }
 
 {
-  const { rules, node } = loadGame("rummy", "{ isMeld, bestPartition, handIsMeldable, newGame, getState: () => state }");
+  const { rules, node } = loadGame("rummy", "{ isMeld, bestPartition, handIsMeldable, finishLastCardShowdown, newGame, getState: () => state, setState: (value) => { state = value; } }");
   expect(rules.getState().hands.every((hand) => hand.length === 7), "Rummy must deal seven cards.");
   expect(rules.isMeld([card(14, "S"), card(2, "S"), card(3, "S")]), "Rummy must accept A-2-3 as a run.");
   expect(!rules.isMeld([card(12, "S"), card(13, "S"), card(14, "S")]), "Rummy must not accept Q-K-A as a run.");
@@ -73,6 +73,9 @@ function ids(cards) { return cards.map((item) => item.id).sort().join(","); }
   expect(rules.bestPartition(perfect).used === 7, "Rummy meld partition must use every card in a perfect hand.");
   node("player-count").value = "4"; rules.newGame();
   expect(rules.getState().hands.length === 4 && rules.getState().hands.every((hand) => hand.length === 7), "Four-player Rummy must keep seven-card hands.");
+  rules.setState({ hands: [[card(10, "S")], [card(4, "D")]], melds: [], winner: null, score: [0, 0], aiPending: false });
+  expect(rules.finishLastCardShowdown(), "Rummy must end when every player is down to one unusable card.");
+  expect(rules.getState().winner === 1, "The lowest last card must win Rummy's last-card showdown.");
 }
 
 {
@@ -104,7 +107,7 @@ function ids(cards) { return cards.map((item) => item.id).sort().join(","); }
 }
 
 {
-  const { rules, source } = loadGame("83-maines-card-game", "{ makeDeck, isTrump, pointValue, trumpWeight, legalCards, trickWinner, setState: (value) => { state = value; } }");
+  const { rules, source } = loadGame("83-maines-card-game", "{ makeDeck, isTrump, pointValue, trumpWeight, legalCards, trickWinner, playCard, repairOverplayedTrick, getState: () => state, setState: (value) => { state = value; } }");
   const deck = rules.makeDeck();
   expect(deck.length === 53, "83 must use a standard deck plus one joker.");
   expect(deck.reduce((total, item) => total + rules.pointValue(item, "H"), 0) === 83, "83's scoring trumps must total exactly 83 points.");
@@ -118,6 +121,13 @@ function ids(cards) { return cards.map((item) => item.id).sort().join(","); }
   expect(ids(rules.legalCards(0)) === "C7,H3,S7", "Without the led plain suit, any card must be legal in 83.");
   rules.setState({ trump: "H", trick: [{ player: 3, card: card(10, "H") }], hands: [[card(7, "S"), card(3, "H"), card(5, "D")]] });
   expect(ids(rules.legalCards(0)) === "D5,H3", "A trump lead must be followed with trump when possible.");
+  const fullTrick = [{ player: 0, card: card(2, "C") }, { player: 1, card: card(3, "C") }, { player: 2, card: card(4, "C") }, { player: 3, card: card(6, "C") }];
+  rules.setState({ phase: "play", active: 2, computer: true, trick: fullTrick, hands: [[], [], [card(14, "C")], []], trump: "H" });
+  rules.playCard({ id: "C14", player: 2 });
+  expect(rules.getState().hands[2].length === 1 && rules.getState().trick.length === 4, "83 must never let an AI play a fifth card into a completed trick.");
+  const corrupted = { phase: "play", trick: fullTrick.concat([{ player: 2, card: card(14, "C") }, { player: 2, card: card(13, "C") }]), hands: [[], [], [], []] };
+  rules.repairOverplayedTrick(corrupted);
+  expect(corrupted.trick.length === 4 && ids(corrupted.hands[2]) === "C13,C14", "83 must repair a previously saved overplayed trick by returning excess cards to their owner.");
   expect(source.includes("? state.teamPoints[bidderTeam] : -state.highest.value"), "A set bidding team must lose its bid amount.");
   expect(source.includes("made ? 166 : -166"), "83 Double must score plus or minus 166.");
 }

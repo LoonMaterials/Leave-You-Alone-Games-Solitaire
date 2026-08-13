@@ -12,6 +12,9 @@ This report distinguishes local source/build verification from the account, sign
 - All **16** computer-opponent games expose Easy, Medium, and Hard choices and apply the selected difficulty to their own local decision code. Chess retains its additional Grandmaster choice.
 - Rummy, Gin Rummy, Hearts, Spades, Cribbage, and 83-Maine's Card Game passed focused distinct-rule checks.
 - Deterministic checks passed for seven-card Rummy, perfect-hand Rummy go-out, separate Gin Rummy deals/deadwood, Ace-low melds, three-player Hearts with 26 points in play, 83 trump/follow rules, protected 83 scoring trumps, Ace-low Cribbage runs, and the 29-point Cribbage hand.
+- Regression checks now also cover Rummy's one-card showdown and prevent any fifth card from entering a completed 83 trick.
+- All games now use durable local saves rather than temporary tab-only storage. Live reload checks restored an active Rummy turn, a four-entry 83 auction, and an older 2048 board; Continue Last Game reopened the restored Rummy deal.
+- All six pass-and-play hand games provide Dealt order, Group by suit, and Group by rank controls. Restored local hands are re-hidden until the active player reveals them.
 - A browser load audit covered all 31 games plus the privacy and support pages without page-load failures or console errors.
 - Fresh browser flows verified the final three-player Hearts handoff: only Player 1's hand was initially visible, all hands became hidden after Player 1 played 2♣, and only Player 2's hand appeared after Player 2 pressed the reveal button.
 - A fresh browser flow verified 83 bidding, computer counterbids, the kitty/trump transition, protected-trump discarding, computer partner processing, and entry into six-card trick play.
@@ -22,7 +25,7 @@ These checks are finite automated and browser tests. They do not prove perfect s
 
 - The generated web bundle completed successfully.
 - Android and iOS contain byte-for-byte copies of the same **105** generated web files.
-- Offline cache identifier: `leave-me-alone-games-v97`, with cache-busted final card-game files.
+- Offline cache identifier: `leave-me-alone-games-v98`, with cache-busted final card-game and launcher files.
 - Version and package identity are synchronized as `3.2.0` / Android code `32` / `com.loonmaterials.leavemealonegames`.
 - Matching 2♦ launcher icons and launch screens replaced the native Capacitor placeholders.
 
@@ -30,10 +33,10 @@ These checks are finite automated and browser tests. They do not prove perfect s
 
 - Gradle `bundleRelease` completed successfully, including release lint checks.
 - Bundle: `android/app/build/outputs/bundle/release/app-release.aab`
-- Size: **5,686,043 bytes**
-- SHA-256: `5152DBB691A472740CFC4EEF8D326FF2E76D2408B48A4CB9E559E1679FCABF33`
+- Size: **5,692,824 bytes**
+- SHA-256: `DE35C2011DB559FE8035002C94796AA1751403D93950EAB2BDFFFFCD4E4E0559`
 - Merged manifest verified version `3.2.0`, code `32`, target API `36`, backups disabled, cleartext traffic disabled, and no `android.permission.INTERNET` request.
-- Bundle contents were opened and spot-checked for the current `v97` offline cache plus the final Hearts and 83 game programs.
+- Bundle contents were opened and spot-checked for the current `v98` offline cache plus the final Hearts and 83 game programs.
 - Signature inspection result: **unsigned**. This is intentional because no private upload keystore was supplied to the workspace.
 
 The bundle is a verified unsigned release artifact, not the final Play Console upload. It still needs the owner's private upload key, Google Play internal-track acceptance, and installation tests on real or representative Android devices.

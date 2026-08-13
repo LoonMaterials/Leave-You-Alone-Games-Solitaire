@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "sudoku", href: "games/sudoku/index.html", title: document.querySelector("h1")?.textContent?.trim() || "sudoku", playedAt: Date.now() }));
+  } catch {}
 
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
@@ -177,7 +180,7 @@
 
   function save() {
     try {
-      sessionStorage.setItem(KEY, JSON.stringify(state));
+      localStorage.setItem(KEY, JSON.stringify(state));
     } catch {}
   }
 
@@ -191,7 +194,7 @@
 
   function load() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(KEY));
+      const saved = JSON.parse(localStorage.getItem(KEY));
       return isValidSaved(saved) ? saved : fresh();
     } catch {
       return fresh();

@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "mastermind", href: "games/mastermind/index.html", title: document.querySelector("h1")?.textContent?.trim() || "mastermind", playedAt: Date.now() }));
+  } catch {}
 
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
@@ -79,7 +82,7 @@
 
   function save() {
     try {
-      sessionStorage.setItem(KEY, JSON.stringify(state));
+      localStorage.setItem(KEY, JSON.stringify(state));
     } catch {}
   }
 
@@ -94,7 +97,7 @@
 
   function load() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(KEY));
+      const saved = JSON.parse(localStorage.getItem(KEY));
       return isValidSave(saved) ? saved : fresh();
     } catch {
       return fresh();

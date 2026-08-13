@@ -52,6 +52,8 @@ for (const game of gameFolders) {
   if (/\.\.\/\.\.\/games\//.test(html + source)) fail(`${game} reaches into another game folder`);
   if (/\b(?:src|href)=["']https?:\/\//i.test(html)) fail(`${game} loads an external runtime asset`);
   if (/\b(?:fetch|importScripts)\s*\(\s*["']https?:\/\//i.test(source)) fail(`${game} makes an external runtime request`);
+  if (source.includes("sessionStorage")) fail(`${game} still uses temporary tab-only game storage`);
+  if (!source.includes("leave-me-alone-games-last-game")) fail(`${game} does not register itself for Continue Last Game`);
   try {
     new Function(source);
   } catch (error) {
@@ -80,6 +82,8 @@ for (const game of gameFolders) {
     for (const marker of ["handVisible", "showActiveHand"]) {
       if (!source.includes(`function ${marker}`)) fail(`${game} is missing ${marker}()`);
     }
+    if (!html.includes('id="hand-order"') || !source.includes("HAND_ORDER_KEY")) fail(`${game} is missing hand grouping controls`);
+    if (!source.includes("SAVE_KEY") || !source.includes("function saveState") || !source.includes("function loadState")) fail(`${game} is missing durable deal restoration`);
   }
 }
 

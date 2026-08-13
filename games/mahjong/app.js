@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "mahjong", href: "games/mahjong/index.html", title: document.querySelector("h1")?.textContent?.trim() || "mahjong", playedAt: Date.now() }));
+  } catch {}
 
   const STORAGE_KEY = "leave-me-alone-mahjong-current-game";
   const SAVE_VERSION = 4;
@@ -359,12 +362,12 @@
   }
 
   function saveState() {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
   function loadState() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
       const layout = LAYOUTS.find((item) => item.id === saved?.layout);
       if (!saved || saved.version !== SAVE_VERSION || !layout || !Array.isArray(saved.tiles) || saved.tiles.length !== layout.positions.length) return null;
       return saved;

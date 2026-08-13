@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "yacht", href: "games/yacht/index.html", title: document.querySelector("h1")?.textContent?.trim() || "yacht", playedAt: Date.now() }));
+  } catch {}
   const STORAGE_KEY = "leave-me-alone-yacht-current-game";
   const MODE_KEY = "leave-me-alone-yacht-mode";
   const DIFFICULTY_KEY = "leave-me-alone-yacht-difficulty";
@@ -23,8 +26,8 @@
   function freshScores() { return Object.fromEntries(CATEGORIES.map(([id]) => [id, null])); }
   function freshState() { return { players: { p1: freshScores(), p2: freshScores() }, turn: "p1", dice: [1,1,1,1,1], held: [false,false,false,false,false], rolls: 0, winner: null }; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
-  function saveState() { try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
-  function loadState() { try { const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); return saved?.players?.p1 && saved?.players?.p2 ? saved : null; } catch { return null; } }
+  function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); return saved?.players?.p1 && saved?.players?.p2 ? saved : null; } catch { return null; } }
   function remember() { undoSnapshot = clone(state); els.undo.disabled = false; }
   function rollDie() { return 1 + Math.floor(Math.random() * 6); }
   function counts(dice) { return dice.reduce((map, die) => (map[die] = (map[die] || 0) + 1, map), {}); }

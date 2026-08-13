@@ -304,8 +304,10 @@ button.pile {
 }
 
 .card.selected {
-  outline: 3px solid rgba(255, 229, 147, 0.9);
+  outline: 4px solid #fff200;
   outline-offset: 2px;
+  box-shadow: 0 0 0 6px #111, 0 8px 18px rgba(0, 0, 0, 0.58);
+  filter: brightness(1.08);
 }
 
 .card.dragging {

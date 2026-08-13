@@ -1,24 +1,46 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "hearts", href: "games/hearts/index.html", title: document.querySelector("h1")?.textContent?.trim() || "hearts", playedAt: Date.now() }));
+  } catch {}
 
   const SUITS = ["S", "H", "D", "C"];
   const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const SYMBOLS = { S: "♠", H: "♥", D: "♦", C: "♣" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const DIFFICULTY_KEY = "leave-me-alone-hearts-difficulty";
+  const SAVE_KEY = "leave-me-alone-hearts-save-v1";
+  const HAND_ORDER_KEY = "leave-me-alone-hearts-hand-order";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const els = {
     status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"),
     scorebar: document.getElementById("scorebar"), finish: document.getElementById("finish-trick"), note: document.getElementById("note"),
     mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"),
     passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"),
-    cardPassPanel: document.getElementById("card-pass-panel"), confirmPass: document.getElementById("confirm-pass")
+    cardPassPanel: document.getElementById("card-pass-panel"), confirmPass: document.getElementById("confirm-pass"), handOrder: document.getElementById("hand-order")
   };
   let state;
 
   function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
   function applyDifficulty() { els.difficulty.value = storedDifficulty(); els.difficulty.disabled = !els.mode.checked; }
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
+  function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
+  function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function orderedEntries(hand) {
+    const entries = hand.map((card, index) => ({ card, index }));
+    if (els.handOrder.value === "dealt") return entries;
+    return entries.sort((a, b) => els.handOrder.value === "rank" ? (a.card.rank - b.card.rank || SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit)) : (SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) || a.card.rank - b.card.rank));
+  }
+  function saveState() { if (state) try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, aiPending: false, finishPending: false })); } catch {} }
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.scores)) return null;
+      saved.aiPending = false; saved.finishPending = false; saved.selectedPass = [];
+      saved.revealedPlayer = saved.computer ? 0 : -1; saved.lastActive = saved.active;
+      return saved;
+    } catch { return null; }
+  }
   function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
   function isHuman(player) { return !state.computer || player === 0; }
   function canAct(player = state.active) { return !state.complete && state.active === player && isHuman(player) && handVisible(player); }
@@ -203,7 +225,7 @@
       const box = document.createElement("div"); box.className = "player-box";
       const heading = document.createElement("h3"); heading.textContent = playerName(player) + " · " + hand.length + " cards" + (state.active === player && !state.complete ? " · active" : "") + (player > 0 && state.computer ? " · computer" : ""); box.appendChild(heading);
       const row = document.createElement("div"); row.className = "card-row";
-      hand.forEach((card, index) => {
+      orderedEntries(hand).forEach(({ card, index }) => {
         const passEnabled = state.phase === "pass" && canAct(player);
         const playEnabled = state.phase === "play" && canAct(player) && state.trick.length < state.playerCount && legalCards(player).some((candidate) => candidate.id === card.id);
         row.appendChild(cardButton(card, passEnabled || playEnabled, passEnabled ? () => togglePass(card.id) : () => playCard(player, index), !handVisible(player), state.selectedPass.includes(card.id)));
@@ -218,14 +240,17 @@
     els.passPanel.hidden = state.computer || state.complete || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + "."; els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
     els.note.textContent = state.complete ? "Start a new deal for another hand." : state.phase === "pass" ? "Four-player Hearts begins by passing three cards to the player on the left." : state.heartsBroken ? "Hearts are broken. Follow suit whenever possible." : "Hearts are not broken yet. The 2♣ leads the first trick; point cards are restricted on that trick.";
+    saveState();
   }
 
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
+  els.handOrder.addEventListener("change", saveHandOrder);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand); els.confirmPass.addEventListener("click", confirmPass);
   document.getElementById("new-game").addEventListener("click", newGame); els.finish.addEventListener("click", finishTrick);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
-  applyDifficulty(); newGame();
+  applyDifficulty(); els.handOrder.value = storedHandOrder(); state = loadState();
+  if (state) { els.mode.checked = state.computer; els.playerCount.value = String(state.playerCount); els.playerCount.disabled = state.computer; applyDifficulty(); render(); scheduleAI(); } else newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

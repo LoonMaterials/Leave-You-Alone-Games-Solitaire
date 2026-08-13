@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "shut-the-box", href: "games/shut-the-box/index.html", title: document.querySelector("h1")?.textContent?.trim() || "shut-the-box", playedAt: Date.now() }));
+  } catch {}
 
   const STORAGE_KEY = "leave-me-alone-shut-the-box-current-game";
   const MODE_KEY = "leave-me-alone-shut-the-box-mode";
@@ -91,12 +94,12 @@
   }
 
   function saveState() {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
   function loadState() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!saved || saved.version !== SAVE_VERSION || !Array.isArray(saved.open)) return null;
       return saved;
     } catch {

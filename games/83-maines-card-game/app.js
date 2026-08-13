@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "83-maines-card-game", href: "games/83-maines-card-game/index.html", title: document.querySelector("h1")?.textContent?.trim() || "83-maines-card-game", playedAt: Date.now() }));
+  } catch {}
 
   const SUITS = ["S", "H", "D", "C"];
   const SUIT_NAMES = { S: "Spades", H: "Hearts", D: "Diamonds", C: "Clubs" };
@@ -7,6 +10,8 @@
   const RANK_NAMES = { 14: "A", 13: "K", 12: "Q", 11: "J", 10: "10", 9: "9", 8: "8", 7: "7", 6: "6", 5: "5", 4: "4", 3: "3", 2: "2" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const DIFFICULTY_KEY = "leave-me-alone-83-difficulty";
+  const SAVE_KEY = "leave-me-alone-83-save-v1";
+  const HAND_ORDER_KEY = "leave-me-alone-83-hand-order";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const TEAM_NAMES = ["Team 1 · Players 1 + 3", "Team 2 · Players 2 + 4"];
   const els = {
@@ -44,13 +49,45 @@
     newMatch: document.getElementById("new-match"),
     newRound: document.getElementById("new-round"),
     mode: document.getElementById("computer-mode"),
-    difficulty: document.getElementById("difficulty")
+    difficulty: document.getElementById("difficulty"),
+    handOrder: document.getElementById("hand-order")
   };
   let state = null;
 
   function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
   function applyDifficulty() { els.difficulty.value = storedDifficulty(); els.difficulty.disabled = !els.mode.checked; }
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
+  function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
+  function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function orderedHand(hand) {
+    const order = els.handOrder.value;
+    if (order === "dealt") return hand.slice();
+    const suitIndex = (card) => card.joker ? 4 : SUITS.indexOf(card.suit);
+    return hand.slice().sort((a, b) => order === "rank" ? (b.rank - a.rank || suitIndex(a) - suitIndex(b)) : (suitIndex(a) - suitIndex(b) || b.rank - a.rank));
+  }
+  function saveState() {
+    if (!state) return;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, aiPending: false, finishPending: false })); } catch {}
+  }
+  function repairOverplayedTrick(saved) {
+    if (saved?.phase !== "play" || !Array.isArray(saved.trick) || saved.trick.length <= 4 || !Array.isArray(saved.hands)) return saved;
+    saved.trick.splice(4).forEach((entry) => {
+      if (entry && Number.isInteger(entry.player) && saved.hands[entry.player] && entry.card) saved.hands[entry.player].push(entry.card);
+    });
+    return saved;
+  }
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!saved || !Array.isArray(saved.hands) || saved.hands.length !== 4 || !Array.isArray(saved.scores) || saved.scores.length !== 2) return null;
+      repairOverplayedTrick(saved);
+      saved.aiPending = false;
+      saved.finishPending = false;
+      saved.revealedPlayer = saved.computer ? 0 : -1;
+      saved.lastActive = saved.active;
+      return saved;
+    } catch { return null; }
+  }
 
   function handVisible(player) {
     return state.computer ? player === 0 : state.revealedPlayer === player;
@@ -353,7 +390,7 @@
   }
 
   function playCard(card) {
-    if (state.phase !== "play" || !actorUnlocked() || card.player !== state.active) return;
+    if (state.phase !== "play" || state.trick.length >= 4 || !actorUnlocked() || card.player !== state.active) return;
     const legal = legalCards(state.active).some((candidate) => candidate.id === card.id);
     if (!legal) return;
     state.trick.push({ player: state.active, card: state.hands[state.active].splice(state.hands[state.active].findIndex((item) => item.id === card.id), 1)[0] });
@@ -471,7 +508,7 @@
   }
 
   function aiPlay() {
-    if (state.phase !== "play" || isHuman(state.active)) return;
+    if (state.phase !== "play" || state.trick.length >= 4 || isHuman(state.active)) return;
     const player = state.active;
     const legal = legalCards(player).slice();
     if (!legal.length) return;
@@ -505,7 +542,7 @@
   }
 
   function scheduleAI() {
-    if (!state || !state.computer || state.aiPending || isHuman(state.active) || state.phase === "round-over" || state.phase === "game-over") return;
+    if (!state || !state.computer || state.aiPending || (state.phase === "play" && state.trick.length >= 4) || isHuman(state.active) || state.phase === "round-over" || state.phase === "game-over") return;
     state.aiPending = true;
     window.setTimeout(() => {
       state.aiPending = false;
@@ -549,7 +586,7 @@
       const row = document.createElement("div");
       row.className = "card-row";
         const legal = state.phase === "play" && state.active === player ? new Set(legalCards(player).map((card) => card.id)) : new Set();
-        hand.forEach((card) => {
+        orderedHand(hand).forEach((card) => {
         const discardEnabled = state.phase === "discard" && humanTurn(player) && discardNeed(player) > 0;
         const playEnabled = state.phase === "play" && humanTurn(player) && legal.has(card.id);
         const enabled = discardEnabled || playEnabled;
@@ -670,6 +707,7 @@
     if (play) renderTrick();
     renderHands();
     renderResult();
+    saveState();
     scheduleAI();
   }
 
@@ -678,6 +716,7 @@
     if (state) startMatch();
   });
   els.difficulty.addEventListener("change", saveDifficulty);
+  els.handOrder.addEventListener("change", saveHandOrder);
   els.bidButton.addEventListener("click", submitBid);
   els.doubleButton.addEventListener("click", submitDouble);
   els.passButton.addEventListener("click", passBid);
@@ -690,6 +729,13 @@
   els.showHand.addEventListener("click", showActiveHand);
   setTheme();
   applyDifficulty();
-  startMatch();
+  els.handOrder.value = storedHandOrder();
+  state = loadState();
+  if (state) {
+    els.mode.checked = state.computer;
+    applyDifficulty();
+    render();
+    if (state.phase === "play" && state.trick.length === 4) scheduleFinish();
+  } else startMatch();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

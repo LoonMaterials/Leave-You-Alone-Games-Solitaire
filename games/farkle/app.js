@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "farkle", href: "games/farkle/index.html", title: document.querySelector("h1")?.textContent?.trim() || "farkle", playedAt: Date.now() }));
+  } catch {}
 
   const STORAGE_KEY = "leave-me-alone-farkle-current-game";
   const MODE_KEY = "leave-me-alone-farkle-mode";
@@ -87,12 +90,12 @@
   }
 
   function saveState() {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 
   function loadState() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!saved || saved.version !== SAVE_VERSION || !saved.scores) return null;
       return saved;
     } catch {

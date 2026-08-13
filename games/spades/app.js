@@ -1,19 +1,29 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "spades", href: "games/spades/index.html", title: document.querySelector("h1")?.textContent?.trim() || "spades", playedAt: Date.now() }));
+  } catch {}
 
   const SUITS = ["S", "H", "D", "C"];
   const RANKS = ["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const SYMBOLS = { S: "♠", H: "♥", D: "♦", C: "♣" };
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
   const DIFFICULTY_KEY = "leave-me-alone-spades-difficulty";
+  const SAVE_KEY = "leave-me-alone-spades-save-v1";
+  const HAND_ORDER_KEY = "leave-me-alone-spades-hand-order";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const TEAM_NAMES = ["Team 1 · Players 1 + 3", "Team 2 · Players 2 + 4"];
-  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"), scorebar: document.getElementById("scorebar"), bids: document.getElementById("bids"), finish: document.getElementById("finish-trick"), submit: document.getElementById("submit-bid"), bid: document.getElementById("bid-value"), phase: document.getElementById("phase-title"), note: document.getElementById("note"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand") };
+  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"), scorebar: document.getElementById("scorebar"), bids: document.getElementById("bids"), finish: document.getElementById("finish-trick"), submit: document.getElementById("submit-bid"), bid: document.getElementById("bid-value"), phase: document.getElementById("phase-title"), note: document.getElementById("note"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), handOrder: document.getElementById("hand-order") };
   let state;
 
   function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
   function applyDifficulty() { els.difficulty.value = storedDifficulty(); els.difficulty.disabled = !els.mode.checked; }
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
+  function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
+  function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function orderedEntries(hand) { const entries = hand.map((card, index) => ({ card, index })); if (els.handOrder.value === "dealt") return entries; return entries.sort((a, b) => els.handOrder.value === "rank" ? a.card.rank - b.card.rank || SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) : SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) || a.card.rank - b.card.rank); }
+  function saveState() { if (state) try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, aiPending: false, finishPending: false })); } catch {} }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.scores)) return null; saved.aiPending = false; saved.finishPending = false; saved.revealedPlayer = saved.computer ? 0 : -1; saved.lastActive = saved.active; return saved; } catch { return null; } }
 
   function makeDeck() { const deck = []; SUITS.forEach((suit) => { for (let rank = 2; rank <= 14; rank += 1) deck.push({ id: suit + rank, rank, suit }); }); return deck; }
   function shuffle(cards) { for (let index = cards.length - 1; index > 0; index -= 1) { const swap = Math.floor(Math.random() * (index + 1)); [cards[index], cards[swap]] = [cards[swap], cards[index]]; } return cards; }
@@ -189,7 +199,7 @@
   function render() {
     resetReveal();
     els.hands.textContent = "";
-    state.hands.forEach((hand, player) => { const box = document.createElement("div"); box.className = "player-box"; const heading = document.createElement("h3"); heading.textContent = playerName(player) + " · " + hand.length + " cards" + (state.active === player && !state.complete ? " · active" : "") + (player > 0 && state.computer ? " · computer" : ""); box.appendChild(heading); const row = document.createElement("div"); row.className = "card-row"; const legal = state.phase === "play" && state.active === player ? new Set(legalCards(player).map((card) => card.id)) : new Set(); hand.forEach((card, index) => row.appendChild(cardButton(card, canAct(player) && state.phase === "play" && legal.has(card.id), () => playCard(player, index), !handVisible(player)))); box.appendChild(row); els.hands.appendChild(box); });
+    state.hands.forEach((hand, player) => { const box = document.createElement("div"); box.className = "player-box"; const heading = document.createElement("h3"); heading.textContent = playerName(player) + " · " + hand.length + " cards" + (state.active === player && !state.complete ? " · active" : "") + (player > 0 && state.computer ? " · computer" : ""); box.appendChild(heading); const row = document.createElement("div"); row.className = "card-row"; const legal = state.phase === "play" && state.active === player ? new Set(legalCards(player).map((card) => card.id)) : new Set(); orderedEntries(hand).forEach(({ card, index }) => row.appendChild(cardButton(card, canAct(player) && state.phase === "play" && legal.has(card.id), () => playCard(player, index), !handVisible(player)))); box.appendChild(row); els.hands.appendChild(box); });
     els.trick.textContent = ""; state.trick.forEach((entry) => { const item = document.createElement("div"); item.className = "trick-card"; const owner = document.createElement("strong"); owner.textContent = playerName(entry.player); item.appendChild(owner); item.appendChild(cardButton(entry.card, false, null, false)); els.trick.appendChild(item); });
     els.scorebar.textContent = ""; state.scores.forEach((score, team) => { const item = document.createElement("div"); item.innerHTML = "<span>" + teamName(team) + "</span><strong>" + score + " points</strong><small>" + state.bags[team] + " bags" + (state.phase === "bid" ? " · Bidding" : "" ) + "</small>"; els.scorebar.appendChild(item); });
     els.bids.textContent = ""; state.bids.forEach((bid, player) => { const item = document.createElement("div"); item.textContent = playerName(player) + ": " + (bid === null ? "—" : bid); els.bids.appendChild(item); });
@@ -199,15 +209,18 @@
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
     els.note.textContent = state.complete ? state.result : state.phase === "bid" ? "Bid expected tricks; a zero bid is nil. Computer partners account for suit length, voids, prior bids, and team needs." : (state.spadesBroken ? "Spades are broken. Follow suit whenever possible; the highest spade wins." : "Spades have not been broken. Lead another suit when possible; follow suit whenever possible.");
+    saveState();
   }
 
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
+  els.handOrder.addEventListener("change", saveHandOrder);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
   document.getElementById("new-game").addEventListener("click", newGame); els.submit.addEventListener("click", () => submitBid(els.bid.value)); els.finish.addEventListener("click", finishTrick);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
   applyDifficulty();
-  newGame();
+  els.handOrder.value = storedHandOrder(); state = loadState();
+  if (state) { els.mode.checked = state.computer; els.playerCount.value = String(state.playerCount); els.playerCount.disabled = state.computer; applyDifficulty(); render(); scheduleAI(); } else newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

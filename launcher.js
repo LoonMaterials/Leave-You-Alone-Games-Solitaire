@@ -144,12 +144,14 @@
       continueCard.classList.add("disabled");
       continueCard.setAttribute("aria-disabled", "true");
       continueCard.setAttribute("href", "#");
+      continueLabel.dataset.i18n = "noRecentGame";
       continueLabel.textContent = t("noRecentGame");
       return;
     }
     continueCard.classList.remove("disabled");
     continueCard.removeAttribute("aria-disabled");
     continueCard.setAttribute("href", saved.href);
+    continueLabel.removeAttribute("data-i18n");
     continueLabel.textContent = saved.titleKey ? t(saved.titleKey) : saved.title;
   }
 

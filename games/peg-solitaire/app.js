@@ -1,5 +1,8 @@
 (function () {
   "use strict";
+  try {
+    localStorage.setItem("leave-me-alone-games-last-game", JSON.stringify({ id: "peg-solitaire", href: "games/peg-solitaire/index.html", title: document.querySelector("h1")?.textContent?.trim() || "peg-solitaire", playedAt: Date.now() }));
+  } catch {}
 
   const THEME_KEY = "leave-me-alone-games-theme";
   const THEMES = new Set(["colorblind", "green", "blue", "grey", "orange", "purple", "red", "sand", "midnight", "rose"]);
@@ -265,13 +268,13 @@
 
   function save() {
     try {
-      sessionStorage.setItem(KEY, JSON.stringify(state));
+      localStorage.setItem(KEY, JSON.stringify(state));
     } catch {}
   }
 
   function load() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(KEY));
+      const saved = JSON.parse(localStorage.getItem(KEY));
       if (saved?.version !== SAVE_VERSION || !Array.isArray(saved.pegs) || saved.pegs.length !== 7 || !layoutById(saved.layout)) return fresh();
       return saved;
     } catch {
