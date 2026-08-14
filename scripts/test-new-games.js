@@ -27,6 +27,10 @@ for (const [game, markers] of Object.entries(games)) {
   const styles = fs.readFileSync(path.join(folder, "styles.css"), "utf8");
   if (!html.includes('src="app.js')) fail(`${game} does not load its local app.js`);
   if (!html.includes('id="computer-mode"')) fail(`${game} is missing computer-mode control`);
+  if (!html.includes('<body data-theme="colorblind">')) fail(`${game} must paint in the default color-blind theme before JavaScript loads`);
+  for (const themeStyle of ['body[data-theme="colorblind"]', "--felt:#234f68", "--felt-dark:#172b3a"]) {
+    if (!styles.includes(themeStyle)) fail(`${game} is missing the default color-blind palette marker ${themeStyle}`);
+  }
   for (const cardStyle of ["width:clamp(48px,10vw,72px)", "height:clamp(68px,14vw,100px)", "font-size:clamp(1.1rem,3.2vw,1.5rem)", "font-weight:800"]) {
     if (!styles.includes(cardStyle)) fail(`${game} is missing the standard readable card style ${cardStyle}`);
   }
