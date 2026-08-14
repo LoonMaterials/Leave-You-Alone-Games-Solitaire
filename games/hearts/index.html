@@ -9,20 +9,21 @@
     <title>Hearts</title>
     <link rel="manifest" href="../../manifest.webmanifest">
     <link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=20260813-release-2">
+    <link rel="stylesheet" href="styles.css?v=20260814-cards-1">
   </head>
   <body>
     <main class="game-shell">
       <header class="topbar">
         <div><h1>Hearts</h1><p>Local Hearts · follow suit, broken hearts, scoring, and computer players</p></div>
-        <div class="actions"><span id="status" class="status" aria-live="polite"></span><label><input id="computer-mode" type="checkbox" checked> Play against computer</label><label>Difficulty <select id="difficulty"><option value="easy">Easy · relaxed</option><option value="medium" selected>Medium · thinking</option><option value="hard">Hard · strategic</option></select></label><label>Players <select id="player-count"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></label><label>Arrange hand <select id="hand-order"><option value="dealt">Dealt order</option><option value="suit">Group by suit</option><option value="rank">Group by rank</option></select></label><a class="button-link" href="../../index.html">Main Menu</a><button id="new-game" type="button">New Deal</button></div>
+        <div class="actions"><span id="status" class="status" aria-live="polite"></span><label><input id="computer-mode" type="checkbox" checked> Play against computer</label><label>Difficulty <select id="difficulty"><option value="easy">Easy · relaxed</option><option value="medium" selected>Medium · thinking</option><option value="hard">Hard · strategic</option></select></label><label>Players <select id="player-count"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></label><label>Arrange hand <select id="hand-order"><option value="dealt">Dealt order</option><option value="suit">Group by suit</option><option value="rank">Group by rank</option></select></label><label>New match limit <select id="target-score"><option value="50">50 · short</option><option value="100" selected>100 · standard</option><option value="150">150 · long</option></select></label><a class="button-link" href="../../index.html">Main Menu</a><button id="new-match" type="button">New Match</button></div>
       </header>
       <section class="scorebar" id="scorebar"></section>
-      <section id="card-pass-panel" class="panel" hidden><div class="panel-heading"><div><h2>Pass three cards left</h2><p class="note">Choose three cards. All four passes happen together.</p></div><button id="confirm-pass" type="button" disabled>Pass selected cards</button></div></section>
+      <section id="card-pass-panel" class="panel" hidden><div class="panel-heading"><div><h2 id="pass-heading">Pass three cards left</h2><p class="note">Choose three cards. All four passes happen together.</p></div><button id="confirm-pass" type="button" disabled>Pass selected cards</button></div></section>
       <section class="panel"><div class="panel-heading"><h2>Current trick</h2><button id="finish-trick" type="button" disabled>Collect trick</button></div><div id="trick" class="trick"></div><p id="note" class="note">The player with the 2♣ leads. Follow suit, avoid points on the first trick, and keep hearts unbroken until necessary.</p></section>
       <section id="pass-panel" class="panel pass-panel" hidden><strong id="pass-title"></strong><button id="show-hand" type="button">Show this player's cards</button></section>
       <section class="panel"><div class="panel-heading"><h2>Hands</h2><span>Player 1 is human when computer mode is on.</span></div><div id="hands" class="players"></div></section>
+      <section id="result-panel" class="panel" hidden><h2 id="result-title">Deal complete</h2><p id="result-text"></p><div class="actions"><button id="next-deal" type="button">Next Deal</button><button id="result-new-match" type="button">New Match</button></div></section>
     </main>
-    <script src="app.js?v=20260813-fixes-1"></script>
+    <script src="app.js?v=20260814-match-1"></script>
   </body>
 </html>

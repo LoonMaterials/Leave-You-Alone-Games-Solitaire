@@ -11,8 +11,9 @@
   const DIFFICULTY_KEY = "leave-me-alone-cribbage-difficulty";
   const SAVE_KEY = "leave-me-alone-cribbage-save-v1";
   const HAND_ORDER_KEY = "leave-me-alone-cribbage-hand-order";
+  const TARGET_KEY = "leave-me-alone-cribbage-target-score";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
-  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), crib: document.getElementById("crib"), note: document.getElementById("note"), scorebar: document.querySelector(".scorebar"), score1: document.getElementById("score-1"), score2: document.getElementById("score-2"), cribCount: document.getElementById("crib-count"), pegCount: document.getElementById("peg-count"), confirm: document.getElementById("confirm-selection"), nextPhase: document.getElementById("next-phase"), go: document.getElementById("go-button"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), handOrder: document.getElementById("hand-order") };
+  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), crib: document.getElementById("crib"), note: document.getElementById("note"), scorebar: document.querySelector(".scorebar"), score1: document.getElementById("score-1"), score2: document.getElementById("score-2"), cribCount: document.getElementById("crib-count"), pegCount: document.getElementById("peg-count"), confirm: document.getElementById("confirm-selection"), nextPhase: document.getElementById("next-phase"), go: document.getElementById("go-button"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), handOrder: document.getElementById("hand-order"), target: document.getElementById("target-score"), resultPanel: document.getElementById("result-panel"), resultTitle: document.getElementById("result-title"), resultText: document.getElementById("result-text"), nextDeal: document.getElementById("next-deal"), newMatch: document.getElementById("new-match"), resultNewMatch: document.getElementById("result-new-match") };
   let state;
 
   function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
@@ -20,12 +21,14 @@
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
   function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
   function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function storedTarget() { try { const value = localStorage.getItem(TARGET_KEY); return ["61", "121", "241"].includes(value) ? Number(value) : 121; } catch { return 121; } }
+  function saveTarget() { try { localStorage.setItem(TARGET_KEY, els.target.value); } catch {} }
   function orderedEntries(hand) { const entries = hand.map((card, index) => ({ card, index })); if (els.handOrder.value === "dealt") return entries; return entries.sort((a, b) => els.handOrder.value === "rank" ? runRank(a.card) - runRank(b.card) || SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) : SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) || runRank(a.card) - runRank(b.card)); }
   function saveState() { if (state) try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, aiPending: false })); } catch {} }
-  function loadState() { try { const saved = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.deck) || !Array.isArray(saved.scores)) return null; saved.aiPending = false; saved.selected = []; saved.revealedPlayer = saved.computer ? 0 : -1; saved.lastActive = saved.active; return saved; } catch { return null; } }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.deck) || !Array.isArray(saved.scores)) return null; saved.aiPending = false; saved.selected = []; saved.targetScore = [61, 121, 241].includes(Number(saved.targetScore)) ? Number(saved.targetScore) : 121; saved.dealNumber = Math.max(1, Number(saved.dealNumber) || 1); saved.matchWinner = Number.isInteger(saved.matchWinner) ? saved.matchWinner : null; if (saved.scores.some((score) => score >= saved.targetScore)) { saved.phase = "game-over"; saved.matchWinner = saved.scores.findIndex((score) => score >= saved.targetScore); } saved.revealedPlayer = saved.computer ? 0 : -1; saved.lastActive = saved.active; return saved; } catch { return null; } }
 
   function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
-  function turnUnlocked(player = state.active) { return state.phase !== "complete" && state.active === player && (isHuman(player) ? handVisible(player) : state.computer); }
+  function turnUnlocked(player = state.active) { return !["complete", "game-over"].includes(state.phase) && state.active === player && (isHuman(player) ? handVisible(player) : state.computer); }
   function canAct(player = state.active) { return turnUnlocked(player) && isHuman(player); }
   function resetReveal() {
     if (state.lastActive !== state.active) { state.lastActive = state.active; state.revealedPlayer = state.computer ? 0 : -1; }
@@ -79,19 +82,25 @@
     return points;
   }
 
-  function newGame() {
+  function dealHand(options) {
     const deck = shuffle(makeDeck());
     const computer = els.mode.checked;
     const playerCount = computer ? 2 : Number(els.playerCount.value);
     const cardsPerHand = playerCount === 2 ? 6 : 5;
     const discardCount = playerCount === 2 ? 2 : 1;
-    state = { deck, hands: Array.from({ length: playerCount }, () => []), scoringHands: [], playerCount, crib: [], cribTarget: 4, discardCount, starter: null, selected: [], active: 0, phase: "discard", dealer: playerCount - 1, scores: Array(playerCount).fill(0), pegCount: 0, pegSequence: [], passed: Array(playerCount).fill(false), lastPegPlayer: null, computer, aiPending: false, result: "", revealedPlayer: 0, lastActive: 0 };
+    const dealer = Number(options.dealer) % playerCount; const active = (dealer + 1) % playerCount;
+    state = { deck, hands: Array.from({ length: playerCount }, () => []), scoringHands: [], playerCount, crib: [], cribTarget: 4, discardCount, starter: null, selected: [], active, phase: "discard", dealer, scores: options.scores.slice(), targetScore: options.targetScore, dealNumber: options.dealNumber, matchWinner: null, pegCount: 0, pegSequence: [], passed: Array(playerCount).fill(false), lastPegPlayer: null, computer, aiPending: false, result: "", revealedPlayer: computer ? 0 : -1, lastActive: active };
     for (let index = 0; index < cardsPerHand; index += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.deck.pop());
     if (playerCount === 3) state.crib.push(state.deck.pop());
     els.playerCount.disabled = computer;
     els.difficulty.disabled = !computer;
     render(); scheduleAI();
   }
+
+  function newGame() { const computer = els.mode.checked; const playerCount = computer ? 2 : Number(els.playerCount.value); dealHand({ computer, playerCount, dealer: playerCount - 1, scores: Array(playerCount).fill(0), targetScore: Number(els.target.value), dealNumber: 1 }); }
+  function requestNewGame() { const progress = state.scores.some(Boolean) || state.phase !== "discard" || state.crib.length > (state.playerCount === 3 ? 1 : 0); if (progress && typeof window.confirm === "function" && !window.confirm("Start a new Cribbage match and erase the current scores?")) return false; newGame(); return true; }
+  function nextDeal() { if (state.phase !== "complete") return false; dealHand({ computer: state.computer, playerCount: state.playerCount, dealer: (state.dealer + 1) % state.playerCount, scores: state.scores, targetScore: state.targetScore, dealNumber: state.dealNumber + 1 }); return true; }
+  function awardPoints(player, points) { if (!points || state.phase === "game-over") return state.phase !== "game-over"; state.scores[player] += points; if (state.scores[player] >= state.targetScore) { state.matchWinner = player; state.phase = "game-over"; state.result = "Player " + (player + 1) + " wins the match with " + state.scores[player] + " points."; state.aiPending = false; return false; } return true; }
 
   function toggleCard(index) {
     if (state.phase !== "discard" || !canAct()) return;
@@ -159,7 +168,7 @@
     if (state.crib.length !== state.cribTarget) return;
     state.starter = state.deck.pop();
     state.scoringHands = state.hands.map((hand) => hand.slice());
-    if (state.starter.rank === 11) state.scores[state.dealer] += 2;
+    if (state.starter.rank === 11 && !awardPoints(state.dealer, 2)) return;
     state.phase = "ready"; state.active = (state.dealer + 1) % state.playerCount; state.pegCount = 0; state.pegSequence = []; state.passed = Array(state.playerCount).fill(false);
   }
 
@@ -171,16 +180,17 @@
   }
 
   function finishRound() {
-    state.scoringHands.forEach((hand, player) => { state.scores[player] += scoreHand(hand, state.starter, false); });
-    state.scores[state.dealer] += scoreHand(state.crib, state.starter, true);
+    const order = Array.from({ length: state.playerCount }, (_, offset) => (state.dealer + offset + 1) % state.playerCount);
+    for (const player of order) if (!awardPoints(player, scoreHand(state.scoringHands[player], state.starter, false))) return;
+    if (!awardPoints(state.dealer, scoreHand(state.crib, state.starter, true))) return;
     state.phase = "complete"; state.result = "Round complete. " + state.scores.map((score, player) => "Player " + (player + 1) + " " + score).join(", ") + ".";
   }
 
   function playPeg(index) {
     if (state.phase !== "peg" || state.active < 0 || !turnUnlocked()) return;
     const card = state.hands[state.active][index]; if (!card || !legalPegCards(state.active).some((candidate) => candidate.id === card.id)) return;
-    state.hands[state.active].splice(index, 1); state.pegSequence.push(card); state.pegCount += value(card); state.scores[state.active] += scorePeg(state.pegSequence); state.lastPegPlayer = state.active; state.passed = Array(state.playerCount).fill(false);
-    if (state.hands.every((hand) => !hand.length)) { if (state.pegCount !== 31) state.scores[state.active] += 1; finishRound(); render(); return; }
+    state.hands[state.active].splice(index, 1); state.pegSequence.push(card); state.pegCount += value(card); if (!awardPoints(state.active, scorePeg(state.pegSequence))) { render(); return; } state.lastPegPlayer = state.active; state.passed = Array(state.playerCount).fill(false);
+    if (state.hands.every((hand) => !hand.length)) { if (state.pegCount !== 31 && !awardPoints(state.active, 1)) { render(); return; } finishRound(); render(); return; }
     if (state.pegCount === 31) { state.pegCount = 0; state.pegSequence = []; state.active = nextPlayerWithCards(state.lastPegPlayer); }
     else state.active = (state.active + 1) % state.playerCount;
     render(); scheduleAI();
@@ -190,7 +200,7 @@
     if (state.phase !== "peg" || state.active < 0 || !turnUnlocked() || legalPegCards(state.active).length) return;
     state.passed[state.active] = true;
     const next = Array.from({ length: state.playerCount }, (_, offset) => (state.active + offset + 1) % state.playerCount).find((player) => !state.passed[player]);
-    if (next === undefined) { if (state.pegCount > 0 && state.lastPegPlayer !== null) state.scores[state.lastPegPlayer] += 1; state.pegCount = 0; state.pegSequence = []; state.passed = Array(state.playerCount).fill(false); state.active = state.lastPegPlayer === null ? 0 : nextPlayerWithCards(state.lastPegPlayer); }
+    if (next === undefined) { if (state.pegCount > 0 && state.lastPegPlayer !== null && !awardPoints(state.lastPegPlayer, 1)) { render(); return; } state.pegCount = 0; state.pegSequence = []; state.passed = Array(state.playerCount).fill(false); state.active = state.lastPegPlayer === null ? 0 : nextPlayerWithCards(state.lastPegPlayer); }
     else state.active = next;
     render(); scheduleAI();
   }
@@ -221,10 +231,10 @@
   }
 
   function scheduleAI() {
-    if (!state || !state.computer || state.aiPending || state.phase === "complete" || !isHuman(state.active) && state.active !== 1) return;
+    if (!state || !state.computer || state.aiPending || ["complete", "game-over"].includes(state.phase) || !isHuman(state.active) && state.active !== 1) return;
     if (state.active !== 1) return;
     state.aiPending = true;
-    window.setTimeout(() => { state.aiPending = false; if (!state || !state.computer || state.active !== 1 || state.phase === "complete") return; if (state.phase === "discard") chooseComputerCrib(); else if (state.phase === "peg") aiPeg(); }, 300);
+    window.setTimeout(() => { state.aiPending = false; if (!state || !state.computer || state.active !== 1 || ["complete", "game-over"].includes(state.phase)) return; if (state.phase === "discard") chooseComputerCrib(); else if (state.phase === "peg") aiPeg(); }, 300);
   }
 
   function cardButton(card, enabled, selected, onClick, hidden) { const button = document.createElement("button"); button.type = "button"; button.className = "playing-card" + (card.suit === "H" || card.suit === "D" ? " red" : "") + (selected ? " selected" : ""); button.textContent = hidden ? "🂠" : text(card); button.disabled = !enabled; if (onClick) button.addEventListener("click", onClick); return button; }
@@ -234,28 +244,30 @@
     els.hands.textContent = "";
     state.hands.forEach((hand, player) => { const box = document.createElement("div"); box.className = "player-box"; const heading = document.createElement("h3"); heading.textContent = "Player " + (player + 1) + (state.active === player && state.phase !== "complete" ? " · active" : "") + (player === 1 && state.computer ? " · computer" : ""); box.appendChild(heading); const row = document.createElement("div"); row.className = "card-row"; orderedEntries(hand).forEach(({ card, index }) => { const enabled = state.phase === "discard" ? canAct(player) : state.phase === "peg" && canAct(player) && legalPegCards(player).some((candidate) => candidate.id === card.id); row.appendChild(cardButton(card, enabled, state.selected.includes(index), () => state.phase === "discard" ? toggleCard(index) : playPeg(index), !handVisible(player))); }); box.appendChild(row); els.hands.appendChild(box); });
     els.crib.textContent = ""; state.crib.forEach((card) => els.crib.appendChild(cardButton(card, false, false, null, state.phase !== "complete"))); if (state.starter) els.crib.appendChild(cardButton(state.starter, false, false, null, false));
-    els.score1.textContent = String(state.scores[0]); els.score2.textContent = String(state.scores[1]);
+    els.score1.textContent = state.scores[0] + " / " + state.targetScore; els.score2.textContent = state.scores[1] + " / " + state.targetScore;
     els.scorebar.querySelectorAll(".dynamic-score").forEach((item) => item.remove());
-    state.scores.slice(2).forEach((score, offset) => { const item = document.createElement("div"); item.className = "dynamic-score"; item.innerHTML = "<span>Player " + (offset + 3) + "</span><strong>" + score + "</strong>"; els.scorebar.insertBefore(item, els.cribCount.parentElement); });
+    state.scores.slice(2).forEach((score, offset) => { const item = document.createElement("div"); item.className = "dynamic-score"; item.innerHTML = "<span>Player " + (offset + 3) + "</span><strong>" + score + " / " + state.targetScore + "</strong>"; els.scorebar.insertBefore(item, els.cribCount.parentElement); });
     els.cribCount.textContent = state.crib.length + " / " + state.cribTarget; els.pegCount.textContent = state.pegCount + " / 31";
     els.confirm.textContent = "Send " + state.discardCount + " to crib"; els.confirm.disabled = state.phase !== "discard" || !canAct() || state.selected.length !== state.discardCount; els.nextPhase.hidden = state.phase !== "ready"; els.go.hidden = state.phase !== "peg" || !canAct() || legalPegCards(state.active).length > 0;
-    els.passPanel.hidden = state.computer || state.phase === "complete" || handVisible(state.active);
+    els.passPanel.hidden = state.computer || ["complete", "game-over"].includes(state.phase) || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
-    els.status.textContent = state.result || (state.phase === "discard" ? (canAct() ? "Player " + (state.active + 1) + " chooses " + state.discardCount + " card" + (state.discardCount === 1 ? "" : "s") + " for the crib." : "Pass the device to Player " + (state.active + 1) + ".") : state.phase === "ready" ? "Starter card is " + text(state.starter) + "." : state.phase === "peg" ? (canAct() ? "Player " + (state.active + 1) + " to peg." : "Pass the device to Player " + (state.active + 1) + ".") : "Round complete.");
-    els.note.textContent = state.phase === "discard" ? (state.playerCount === 2 ? "Two-player Cribbage deals six cards and each player sends two to the crib." : "Three- and four-player Cribbage deals five cards and each player sends one to the four-card crib.") : state.phase === "ready" ? "The non-dealer leads pegging. The starter card counts for hand scoring, not pegging." : state.phase === "peg" ? "Pegging scores 15, 31, pairs, runs, Go, and the last card. The computer weighs immediate scores against the reply it may allow." : "Start a new deal for another round.";
+    els.status.textContent = state.result || (state.phase === "discard" ? (canAct() ? "Player " + (state.active + 1) + " chooses " + state.discardCount + " card" + (state.discardCount === 1 ? "" : "s") + " for the crib." : "Pass the device to Player " + (state.active + 1) + ".") : state.phase === "ready" ? "Starter card is " + text(state.starter) + "." : state.phase === "peg" ? (canAct() ? "Player " + (state.active + 1) + " to peg." : "Pass the device to Player " + (state.active + 1) + ".") : state.phase === "game-over" ? "Match complete." : "Round complete.");
+    els.note.textContent = state.phase === "discard" ? (state.playerCount === 2 ? "Two-player Cribbage deals six cards and each player sends two to the crib." : "Three- and four-player Cribbage deals five cards and each player sends one to the four-card crib.") : state.phase === "ready" ? "The non-dealer leads pegging. The starter card counts for hand scoring, not pegging." : state.phase === "peg" ? "Pegging scores 15, 31, pairs, runs, Go, and the last card. The computer weighs immediate scores against the reply it may allow." : state.phase === "game-over" ? "The target was reached during scoring. Start a New Match to reset the board." : "Choose Next Deal to rotate the dealer and preserve the scores.";
+    els.resultPanel.hidden = !["complete", "game-over"].includes(state.phase); els.resultTitle.textContent = state.phase === "game-over" ? "Match complete" : "Deal complete"; els.resultText.textContent = ["complete", "game-over"].includes(state.phase) ? state.result + " Target: " + state.targetScore + "." : ""; els.nextDeal.hidden = state.phase !== "complete";
     saveState();
   }
 
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
   els.handOrder.addEventListener("change", saveHandOrder);
+  els.target.addEventListener("change", saveTarget);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
-  document.getElementById("new-game").addEventListener("click", newGame); els.confirm.addEventListener("click", confirmSelection); els.nextPhase.addEventListener("click", beginPegging); els.go.addEventListener("click", go);
+  els.newMatch.addEventListener("click", requestNewGame); els.resultNewMatch.addEventListener("click", requestNewGame); els.nextDeal.addEventListener("click", nextDeal); els.confirm.addEventListener("click", confirmSelection); els.nextPhase.addEventListener("click", beginPegging); els.go.addEventListener("click", go);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
   applyDifficulty();
-  els.handOrder.value = storedHandOrder(); state = loadState();
+  els.handOrder.value = storedHandOrder(); els.target.value = String(storedTarget()); state = loadState();
   if (state) { els.mode.checked = state.computer; els.playerCount.value = String(state.playerCount); els.playerCount.disabled = state.computer; applyDifficulty(); render(); scheduleAI(); } else newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

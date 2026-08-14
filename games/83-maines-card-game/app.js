@@ -12,6 +12,7 @@
   const DIFFICULTY_KEY = "leave-me-alone-83-difficulty";
   const SAVE_KEY = "leave-me-alone-83-save-v1";
   const HAND_ORDER_KEY = "leave-me-alone-83-hand-order";
+  const TARGET_KEY = "leave-me-alone-83-target-score";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const TEAM_NAMES = ["Team 1 · Players 1 + 3", "Team 2 · Players 2 + 4"];
   const els = {
@@ -50,7 +51,8 @@
     newRound: document.getElementById("new-round"),
     mode: document.getElementById("computer-mode"),
     difficulty: document.getElementById("difficulty"),
-    handOrder: document.getElementById("hand-order")
+    handOrder: document.getElementById("hand-order"),
+    target: document.getElementById("target-score")
   };
   let state = null;
 
@@ -59,6 +61,8 @@
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
   function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
   function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function storedTarget() { try { const value = localStorage.getItem(TARGET_KEY); return ["100", "200", "300"].includes(value) ? Number(value) : 200; } catch { return 200; } }
+  function saveTarget() { try { localStorage.setItem(TARGET_KEY, els.target.value); } catch {} }
   function orderedHand(hand) {
     const order = els.handOrder.value;
     if (order === "dealt") return hand.slice();
@@ -83,6 +87,10 @@
       repairOverplayedTrick(saved);
       saved.aiPending = false;
       saved.finishPending = false;
+      saved.targetScore = [100, 200, 300].includes(Number(saved.targetScore)) ? Number(saved.targetScore) : 200;
+      saved.dealNumber = Math.max(1, Number(saved.dealNumber) || 1);
+      saved.matchWinner = Number.isInteger(saved.matchWinner) ? saved.matchWinner : null;
+      if (saved.phase === "game-over" && saved.matchWinner === null) saved.matchWinner = saved.scores[0] >= saved.scores[1] ? 0 : 1;
       saved.revealedPlayer = saved.computer ? 0 : -1;
       saved.lastActive = saved.active;
       return saved;
@@ -180,7 +188,7 @@
     return pointValue(card, state.trump) > 0;
   }
 
-  function newDeal(scores, dealer) {
+  function newDeal(scores, dealer, targetScore, dealNumber) {
     const deck = shuffle(makeDeck());
     const computer = els.mode.checked;
     const hands = [[], [], [], []];
@@ -189,6 +197,9 @@
     }
     state = {
       scores: scores.slice(),
+      targetScore,
+      dealNumber,
+      matchWinner: null,
       dealer,
       hands,
       kitty: deck.splice(0, 5),
@@ -209,7 +220,7 @@
       computer,
       aiPending: false,
       finishPending: false,
-      revealedPlayer: 0,
+      revealedPlayer: computer ? 0 : -1,
       lastActive: (dealer + 1) % 4
     };
     els.difficulty.disabled = !computer;
@@ -218,11 +229,14 @@
   }
 
   function startMatch() {
-    newDeal([0, 0], 3);
+    newDeal([0, 0], 3, Number(els.target.value), 1);
   }
+  function requestNewMatch() { const progress = state.scores.some(Boolean) || state.history.length > 0 || state.phase !== "auction"; if (progress && typeof window.confirm === "function" && !window.confirm("Start a new 83 match and erase the current team scores?")) return false; startMatch(); return true; }
 
   function nextDeal() {
-    newDeal(state.scores, (state.dealer + 1) % 4);
+    if (state.phase !== "round-over") return false;
+    newDeal(state.scores, (state.dealer + 1) % 4, state.targetScore, state.dealNumber + 1);
+    return true;
   }
 
   function nextBiddingPlayer(start) {
@@ -432,7 +446,9 @@
     state.scores[bidderTeam] += bidderChange;
     state.scores[otherTeam] += state.teamPoints[otherTeam];
     state.roundResult = { bidderTeam, made, bidderChange, otherTeam, otherPoints: state.teamPoints[otherTeam] };
-    state.phase = state.scores.some((score) => score >= 200) ? "game-over" : "round-over";
+    const reached = state.scores.map((score, team) => score >= state.targetScore ? team : -1).filter((team) => team >= 0);
+    if (reached.length) { const high = Math.max(...reached.map((team) => state.scores[team])); const leaders = reached.filter((team) => state.scores[team] === high); state.phase = leaders.length === 1 ? "game-over" : "round-over"; state.matchWinner = leaders.length === 1 ? leaders[0] : null; }
+    else state.phase = "round-over";
     render();
   }
 
@@ -604,7 +620,7 @@
     els.scorebar.textContent = "";
     state.scores.forEach((score, team) => {
       const item = document.createElement("div");
-      item.innerHTML = "<span>" + TEAM_NAMES[team] + "</span><strong>" + score + " / 200</strong><small>" + state.teamPoints[team] + " points this deal · " + state.teamTricks[team] + " tricks</small>";
+      item.innerHTML = "<span>" + TEAM_NAMES[team] + "</span><strong>" + score + " / " + state.targetScore + "</strong><small>" + state.teamPoints[team] + " points this deal · " + state.teamTricks[team] + " tricks</small>";
       els.scorebar.appendChild(item);
     });
     const deal = document.createElement("div");
@@ -681,7 +697,7 @@
     const bidder = TEAM_NAMES[result.bidderTeam];
     const other = TEAM_NAMES[result.otherTeam];
     const bidText = state.highest.doubled ? "83 Double" : String(state.highest.value);
-    els.roundResult.textContent = bidder + (result.made ? " made " : " was set on ") + bidText + " and " + (result.made ? (result.bidderChange >= 0 ? "scored " + result.bidderChange : "lost " + Math.abs(result.bidderChange)) : "lost " + Math.abs(result.bidderChange)) + ". " + other + " scored " + result.otherPoints + ". Scores: " + state.scores[0] + " to " + state.scores[1] + ".";
+    els.roundResult.textContent = (gameOver ? TEAM_NAMES[state.matchWinner] + " wins the match. " : "") + bidder + (result.made ? " made " : " was set on ") + bidText + " and " + (result.made ? (result.bidderChange >= 0 ? "scored " + result.bidderChange : "lost " + Math.abs(result.bidderChange)) : "lost " + Math.abs(result.bidderChange)) + ". " + other + " scored " + result.otherPoints + ". Scores: " + state.scores[0] + " to " + state.scores[1] + ". Target: " + state.targetScore + ".";
     els.nextDeal.hidden = gameOver;
   }
 
@@ -696,7 +712,7 @@
     els.play.hidden = !play;
     els.hands.hidden = state.phase === "game-over";
     const gatedPhase = auction || trump || discard || play;
-    els.status.textContent = state.error || (!state.computer && gatedPhase && !handVisible(state.active) ? "Pass the device to Player " + (state.active + 1) + "." : auction ? playerName(state.active) + " to bid." : trump ? "Choose a trump suit." : discard ? playerName(state.active) + " is discarding." : play ? playerName(state.active) + " to play." : state.phase === "round-over" ? "Deal scored." : "Game complete.");
+    els.status.textContent = state.error || (!state.computer && gatedPhase && !handVisible(state.active) ? "Pass the device to Player " + (state.active + 1) + "." : auction ? playerName(state.active) + " to bid." : trump ? "Choose a trump suit." : discard ? playerName(state.active) + " is discarding." : play ? playerName(state.active) + " to play." : state.phase === "round-over" ? "Deal scored." : TEAM_NAMES[state.matchWinner] + " wins the match.");
     els.passPanel.hidden = state.computer || !gatedPhase || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
@@ -717,19 +733,21 @@
   });
   els.difficulty.addEventListener("change", saveDifficulty);
   els.handOrder.addEventListener("change", saveHandOrder);
+  els.target.addEventListener("change", saveTarget);
   els.bidButton.addEventListener("click", submitBid);
   els.doubleButton.addEventListener("click", submitDouble);
   els.passButton.addEventListener("click", passBid);
   els.discardButton.addEventListener("click", confirmDiscard);
   els.passTrumps.addEventListener("click", passTrumps);
   els.finishTrick.addEventListener("click", finishTrick);
-  els.newMatch.addEventListener("click", startMatch);
-  els.newRound.addEventListener("click", startMatch);
+  els.newMatch.addEventListener("click", requestNewMatch);
+  els.newRound.addEventListener("click", requestNewMatch);
   els.nextDeal.addEventListener("click", nextDeal);
   els.showHand.addEventListener("click", showActiveHand);
   setTheme();
   applyDifficulty();
   els.handOrder.value = storedHandOrder();
+  els.target.value = String(storedTarget());
   state = loadState();
   if (state) {
     els.mode.checked = state.computer;

@@ -11,6 +11,9 @@
   const DIFFICULTY_KEY = "leave-me-alone-rummy-difficulty";
   const SAVE_KEY = "leave-me-alone-rummy-save-v1";
   const HAND_ORDER_KEY = "leave-me-alone-rummy-hand-order";
+  const TARGET_KEY = "leave-me-alone-rummy-target-score";
+  const CUSTOM_TARGET_KEY = "leave-me-alone-rummy-custom-target";
+  const PHASES = new Set(["playing", "hand-over", "match-over"]);
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const els = {
     status: document.getElementById("status"), hands: document.getElementById("hands"), melds: document.getElementById("melds"),
@@ -18,7 +21,10 @@
     draw: document.getElementById("draw-card"), drawDiscard: document.getElementById("draw-discard"), layMeld: document.getElementById("lay-meld"),
     discardCard: document.getElementById("discard-card"), goOut: document.getElementById("go-out"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"),
     playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"),
-    showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note"), handOrder: document.getElementById("hand-order")
+    showHand: document.getElementById("show-hand"), note: document.getElementById("turn-note"), handOrder: document.getElementById("hand-order"),
+    targetScore: document.getElementById("target-score"), customTarget: document.getElementById("custom-target"), customTargetLabel: document.getElementById("custom-target-label"),
+    resultPanel: document.getElementById("result-panel"), resultTitle: document.getElementById("result-title"), resultText: document.getElementById("result-text"),
+    nextDeal: document.getElementById("next-deal"), newMatch: document.getElementById("new-match"), resultNewMatch: document.getElementById("result-new-match")
   };
   let state;
 
@@ -27,6 +33,15 @@
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
   function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
   function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function clampTarget(value) { if (value === null || value === undefined || value === "") return 250; const parsed = Math.round(Number(value)); return Number.isFinite(parsed) ? Math.min(5000, Math.max(25, parsed)) : 250; }
+  function storedTargetChoice() { try { const value = localStorage.getItem(TARGET_KEY); return ["100", "250", "500", "custom"].includes(value) ? value : "250"; } catch { return "250"; } }
+  function storedCustomTarget() { try { return clampTarget(localStorage.getItem(CUSTOM_TARGET_KEY)); } catch { return 250; } }
+  function selectedTarget() { return els.targetScore.value === "custom" ? clampTarget(els.customTarget.value) : clampTarget(els.targetScore.value); }
+  function saveTargetPreference() {
+    els.customTarget.value = String(clampTarget(els.customTarget.value));
+    els.customTargetLabel.hidden = els.targetScore.value !== "custom";
+    try { localStorage.setItem(TARGET_KEY, els.targetScore.value); localStorage.setItem(CUSTOM_TARGET_KEY, els.customTarget.value); } catch {}
+  }
   function orderedHand(hand) {
     if (els.handOrder.value === "dealt") return hand.slice();
     return hand.slice().sort((a, b) => els.handOrder.value === "rank" ? (runRank(a) - runRank(b) || SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit)) : (SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit) || runRank(a) - runRank(b)));
@@ -36,6 +51,14 @@
     try {
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.stock) || !Array.isArray(saved.discard)) return null;
+      saved.playerCount = saved.hands.length;
+      saved.score = Array.from({ length: saved.playerCount }, (_, player) => Number(saved.score?.[player]) || 0);
+      saved.targetScore = clampTarget(saved.targetScore);
+      saved.handNumber = Math.max(1, Number(saved.handNumber) || 1);
+      saved.starter = Math.min(saved.playerCount - 1, Math.max(0, Number(saved.starter) || 0));
+      saved.handPoints = Math.max(0, Number(saved.handPoints) || 0);
+      saved.phase = PHASES.has(saved.phase) ? saved.phase : saved.winner === null ? "playing" : "hand-over";
+      if (saved.winner >= 0 && saved.score[saved.winner] >= saved.targetScore) saved.phase = "match-over";
       saved.aiPending = false;
       saved.selected = [];
       saved.revealedPlayer = saved.computer ? 0 : -1;
@@ -45,11 +68,11 @@
   }
 
   function handVisible(player) { return state.computer ? player === 0 : state.revealedPlayer === player; }
-  function canAct() { return state.winner === null && (!state.computer || state.active === 0) && handVisible(state.active); }
+  function canAct() { return state.phase === "playing" && state.winner === null && (!state.computer || state.active === 0) && handVisible(state.active); }
   function resetReveal() {
     if (state.lastActive !== state.active) { state.lastActive = state.active; state.revealedPlayer = state.computer ? 0 : -1; }
   }
-  function showActiveHand() { if (!state.computer) { state.revealedPlayer = state.active; render(); } }
+  function showActiveHand() { if (state.phase === "playing" && !state.computer) { state.revealedPlayer = state.active; render(); } }
 
   function makeDeck() {
     const deck = [];
@@ -149,14 +172,16 @@
     state.discard = [top];
   }
 
-  function newGame() {
+  function dealHand(options) {
     const deck = shuffle(makeDeck());
-    const computer = els.mode.checked;
-    const playerCount = computer ? 2 : Number(els.playerCount.value);
+    const computer = Boolean(options.computer);
+    const playerCount = computer ? 2 : Number(options.playerCount);
+    const starter = Number(options.starter) % playerCount;
     state = {
-      stock: deck, discard: [], hands: Array.from({ length: playerCount }, () => []), melds: [], active: 0, drawn: false,
-      selected: [], drawnDiscardId: null, computer, playerCount, winner: null, score: Array(playerCount).fill(0), aiPending: false,
-      revealedPlayer: 0, lastActive: 0, opponentPickups: []
+      stock: deck, discard: [], hands: Array.from({ length: playerCount }, () => []), melds: [], active: starter, drawn: false,
+      selected: [], drawnDiscardId: null, computer, playerCount, winner: null, score: options.score.slice(), targetScore: clampTarget(options.targetScore),
+      phase: "playing", handNumber: options.handNumber, starter, handPoints: 0, aiPending: false,
+      revealedPlayer: computer ? 0 : -1, lastActive: starter, opponentPickups: []
     };
     for (let round = 0; round < 7; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(state.stock.pop());
     state.discard.push(state.stock.pop());
@@ -164,6 +189,25 @@
     els.difficulty.disabled = !computer;
     render();
     scheduleAI();
+  }
+
+  function newGame() {
+    const computer = els.mode.checked;
+    const playerCount = computer ? 2 : Number(els.playerCount.value);
+    dealHand({ computer, playerCount, starter: 0, score: Array(playerCount).fill(0), targetScore: selectedTarget(), handNumber: 1 });
+  }
+
+  function nextDeal() {
+    if (!state || state.phase !== "hand-over") return false;
+    dealHand({
+      computer: state.computer,
+      playerCount: state.playerCount,
+      starter: (state.starter + 1) % state.playerCount,
+      score: state.score,
+      targetScore: state.targetScore,
+      handNumber: state.handNumber + 1
+    });
+    return true;
   }
 
   function drawFromStock() {
@@ -205,13 +249,20 @@
   }
 
   function finishRound(winner) {
+    if (state.phase !== "playing" || state.winner !== null) return false;
     state.winner = winner;
-    if (winner >= 0) state.score[winner] += state.hands.reduce((total, hand, player) => total + (player === winner ? 0 : hand.reduce((sum, card) => sum + cardValue(card), 0)), 0);
+    state.handPoints = winner >= 0 ? state.hands.reduce((total, hand, player) => total + (player === winner ? 0 : hand.reduce((sum, card) => sum + cardValue(card), 0)), 0) : 0;
+    if (winner >= 0) state.score[winner] += state.handPoints;
+    state.phase = winner >= 0 && state.score[winner] >= state.targetScore ? "match-over" : "hand-over";
+    state.drawn = false;
+    state.drawnDiscardId = null;
+    state.selected = [];
     state.aiPending = false;
+    return true;
   }
 
   function finishLastCardShowdown() {
-    if (state.winner !== null || !state.hands.every((hand) => hand.length === 1)) return false;
+    if (state.phase !== "playing" || state.winner !== null || !state.hands.every((hand) => hand.length === 1)) return false;
     const canLayOff = state.hands.some((hand) => state.melds.some((meld) => isMeld(meld.cards.concat(hand[0]))));
     if (canLayOff) return false;
     const values = state.hands.map((hand) => cardValue(hand[0]));
@@ -287,6 +338,10 @@
   }
 
   function aiTurn() {
+    if (!state || state.phase !== "playing" || state.winner !== null || !state.computer || state.active === 0) {
+      if (state) state.aiPending = false;
+      return false;
+    }
     const player = state.active;
     const difficulty = storedDifficulty();
     recycleStock();
@@ -315,9 +370,9 @@
   }
 
   function scheduleAI() {
-    if (!state || !state.computer || state.active === 0 || state.winner !== null || state.aiPending) return;
+    if (!state || state.phase !== "playing" || !state.computer || state.active === 0 || state.winner !== null || state.aiPending) return;
     state.aiPending = true;
-    window.setTimeout(() => { if (state && state.computer && state.active !== 0 && state.winner === null) aiTurn(); }, 450);
+    window.setTimeout(() => { if (state && state.phase === "playing" && state.computer && state.active !== 0 && state.winner === null) aiTurn(); }, 450);
   }
 
   function cardButton(card, enabled, selected, onClick, hidden) {
@@ -363,7 +418,7 @@
       const box = document.createElement("div");
       box.className = "player-box";
       const heading = document.createElement("h3");
-      heading.textContent = "Player " + (player + 1) + (state.active === player && state.winner === null ? " · active" : "") + (player === 1 && state.computer ? " · computer" : "");
+      heading.textContent = "Player " + (player + 1) + (state.active === player && state.phase === "playing" ? " · active" : "") + (player === 1 && state.computer ? " · computer" : "") + " · " + state.score[player] + "/" + state.targetScore + " points";
       box.appendChild(heading);
       const row = document.createElement("div");
       row.className = "card-row";
@@ -373,20 +428,25 @@
     });
     const chosen = selectedCards(state.active);
     const top = state.discard[state.discard.length - 1];
-    els.status.textContent = state.winner === -1 ? "Last-card showdown tied; the hand is a draw." : state.winner !== null ? "Player " + (state.winner + 1) + " won the hand." : state.computer && state.active === 1 ? "Computer is thinking…" : canAct() ? state.drawn ? "Lay melds, add to a meld, or select one card to discard." : "Draw a card, or go out now if all seven cards form melds." : "Pass the device to Player " + (state.active + 1) + ".";
+    els.status.textContent = state.phase === "match-over" ? "Player " + (state.winner + 1) + " won the match with " + state.score[state.winner] + " points." : state.phase === "hand-over" && state.winner === -1 ? "Last-card showdown tied; the hand is a draw." : state.phase === "hand-over" ? "Player " + (state.winner + 1) + " won the hand and scored " + state.handPoints + " points." : state.computer && state.active === 1 ? "Computer is thinking…" : canAct() ? state.drawn ? "Lay melds, add to a meld, or select one card to discard." : "Draw a card, or go out now if all seven cards form melds." : "Pass the device to Player " + (state.active + 1) + ".";
     els.stock.textContent = String(state.stock.length);
     els.discard.textContent = top ? cardText(top) : "—";
-    els.count1.textContent = state.hands[0].length + " cards · " + state.score[0] + " points";
-    els.count2.textContent = (state.computer ? "Computer" : "Player 2") + " · " + state.hands[1].length + " cards · " + state.score[1] + " points";
+    els.count1.textContent = state.hands[0].length + " cards · " + state.score[0] + "/" + state.targetScore + " points";
+    els.count2.textContent = (state.computer ? "Computer" : "Player 2") + " · " + state.hands[1].length + " cards · " + state.score[1] + "/" + state.targetScore + " points";
     els.draw.disabled = !canAct() || state.drawn || !state.stock.length;
     els.drawDiscard.disabled = !canAct() || state.drawn || !state.discard.length;
     els.layMeld.disabled = !canAct() || !state.drawn || !isMeld(chosen);
     els.discardCard.disabled = !canAct() || !state.drawn || state.selected.length !== 1 || state.selected[0] === state.drawnDiscardId;
     els.goOut.disabled = !canAct() || !handIsMeldable(state.hands[state.active]);
-    els.passPanel.hidden = state.computer || state.winner !== null || handVisible(state.active);
+    els.passPanel.hidden = state.phase !== "playing" || state.computer || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
-    els.note.textContent = state.winner === null ? "Rummy uses seven-card hands. Meld sets or same-suit runs on the table; unlike Gin Rummy, players may lay off cards during play." : state.winner === -1 ? "Equal last-card values end the hand as a draw with no points awarded." : "Unmelded cards left in the other hands were added to the winner's score.";
+    els.note.textContent = state.phase === "playing" ? "Rummy uses seven-card hands. Meld sets or same-suit runs on the table; unlike Gin Rummy, players may lay off cards during play." : state.winner === -1 ? "Equal last-card values end the hand as a draw with no points awarded. Choose Next Deal to continue the match." : state.phase === "match-over" ? "The target score has been reached. Start a New Match to reset every player's score." : "Unmelded cards left in the other hands were added to the winner's score. Choose Next Deal to keep the scores and continue.";
+    const standings = state.score.map((score, player) => "Player " + (player + 1) + ": " + score).join(" · ");
+    els.resultPanel.hidden = state.phase === "playing";
+    els.resultTitle.textContent = state.phase === "match-over" ? "Match complete" : "Hand complete";
+    els.resultText.textContent = state.winner === -1 ? "This hand was a draw. " + standings + ". Target: " + state.targetScore + "." : "Player " + (state.winner + 1) + " scored " + state.handPoints + " points. " + standings + ". Target: " + state.targetScore + ".";
+    els.nextDeal.hidden = state.phase !== "hand-over";
     renderMelds();
     saveState();
   }
@@ -394,9 +454,13 @@
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
   els.handOrder.addEventListener("change", saveHandOrder);
+  els.targetScore.addEventListener("change", saveTargetPreference);
+  els.customTarget.addEventListener("change", saveTargetPreference);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
-  document.getElementById("new-game").addEventListener("click", newGame);
+  els.newMatch.addEventListener("click", newGame);
+  els.resultNewMatch.addEventListener("click", newGame);
+  els.nextDeal.addEventListener("click", nextDeal);
   els.draw.addEventListener("click", drawFromStock);
   els.drawDiscard.addEventListener("click", drawFromDiscard);
   els.layMeld.addEventListener("click", layMeld);
@@ -405,6 +469,9 @@
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
   applyDifficulty();
   els.handOrder.value = storedHandOrder();
+  els.targetScore.value = storedTargetChoice();
+  els.customTarget.value = String(storedCustomTarget());
+  saveTargetPreference();
   state = loadState();
   if (state) {
     els.mode.checked = state.computer;

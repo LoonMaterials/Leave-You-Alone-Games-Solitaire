@@ -11,13 +11,14 @@
   const DIFFICULTY_KEY = "leave-me-alone-hearts-difficulty";
   const SAVE_KEY = "leave-me-alone-hearts-save-v1";
   const HAND_ORDER_KEY = "leave-me-alone-hearts-hand-order";
+  const TARGET_KEY = "leave-me-alone-hearts-target-score";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const els = {
     status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"),
     scorebar: document.getElementById("scorebar"), finish: document.getElementById("finish-trick"), note: document.getElementById("note"),
     mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"),
     passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"),
-    cardPassPanel: document.getElementById("card-pass-panel"), confirmPass: document.getElementById("confirm-pass"), handOrder: document.getElementById("hand-order")
+    cardPassPanel: document.getElementById("card-pass-panel"), confirmPass: document.getElementById("confirm-pass"), handOrder: document.getElementById("hand-order"), passHeading: document.getElementById("pass-heading"), target: document.getElementById("target-score"), resultPanel: document.getElementById("result-panel"), resultTitle: document.getElementById("result-title"), resultText: document.getElementById("result-text"), nextDeal: document.getElementById("next-deal"), newMatch: document.getElementById("new-match"), resultNewMatch: document.getElementById("result-new-match")
   };
   let state;
 
@@ -26,6 +27,8 @@
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
   function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
   function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function storedTarget() { try { const value = localStorage.getItem(TARGET_KEY); return ["50", "100", "150"].includes(value) ? Number(value) : 100; } catch { return 100; } }
+  function saveTarget() { try { localStorage.setItem(TARGET_KEY, els.target.value); } catch {} }
   function orderedEntries(hand) {
     const entries = hand.map((card, index) => ({ card, index }));
     if (els.handOrder.value === "dealt") return entries;
@@ -37,6 +40,13 @@
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.scores)) return null;
       saved.aiPending = false; saved.finishPending = false; saved.selectedPass = [];
+      saved.targetScore = [50, 100, 150].includes(Number(saved.targetScore)) ? Number(saved.targetScore) : 100;
+      saved.dealNumber = Math.max(1, Number(saved.dealNumber) || 1);
+      saved.dealPoints = Array.isArray(saved.dealPoints) ? saved.dealPoints : saved.scores.slice();
+      if (!Array.isArray(saved.matchScores)) { saved.matchScores = saved.complete ? saved.scores.slice() : Array(saved.scores.length).fill(0); saved.scores = saved.matchScores; }
+      else saved.scores = saved.matchScores;
+      saved.matchOver = Boolean(saved.matchOver);
+      saved.matchWinner = Number.isInteger(saved.matchWinner) ? saved.matchWinner : null;
       saved.revealedPlayer = saved.computer ? 0 : -1; saved.lastActive = saved.active;
       return saved;
     } catch { return null; }
@@ -54,15 +64,16 @@
   function points(card) { return isHeart(card) ? 1 : card.id === "S12" ? 13 : 0; }
   function playerName(player) { return "Player " + (player + 1); }
 
-  function newGame() {
+  function dealHand(options) {
     const computer = els.mode.checked;
     const playerCount = computer ? 4 : Number(els.playerCount.value);
     const deck = shuffle(makeDeck().filter((card) => playerCount !== 3 || card.id !== "D2"));
     const handSize = Math.floor(52 / playerCount);
     const hands = Array.from({ length: playerCount }, () => []);
     for (let round = 0; round < handSize; round += 1) for (let player = 0; player < playerCount; player += 1) hands[player].push(deck.pop());
-    const phase = playerCount === 4 ? "pass" : "play";
-    if (!computer && phase === "play") {
+    const passOffset = playerCount === 4 ? [1, -1, 2, 0][(options.dealNumber - 1) % 4] : 0;
+    const phase = passOffset ? "pass" : "play";
+    if (!computer && phase === "play" && playerCount !== 4) {
       const owner = hands.findIndex((hand) => hand.some((card) => card.id === "C2"));
       if (owner > 0) {
         const clubTwoIndex = hands[owner].findIndex((card) => card.id === "C2");
@@ -72,12 +83,16 @@
     const opening = hands.findIndex((hand) => hand.some((card) => card.id === "C2"));
     state = {
       hands, playerCount, active: phase === "pass" ? 0 : opening, phase, selectedPass: [], passSelections: Array(playerCount).fill(null),
-      trick: [], trickCount: 0, scores: Array(playerCount).fill(0), heartsBroken: false, playedCards: [], complete: false, computer,
+      trick: [], trickCount: 0, scores: options.scores.slice(), matchScores: options.scores.slice(), dealPoints: Array(playerCount).fill(0), targetScore: options.targetScore, dealNumber: options.dealNumber, passOffset, matchOver: false, matchWinner: null, heartsBroken: false, playedCards: [], complete: false, computer,
       finishPending: false, aiPending: false, revealedPlayer: 0, lastActive: phase === "pass" ? 0 : opening
     };
     els.playerCount.disabled = computer; els.difficulty.disabled = !computer;
     render(); scheduleAI();
   }
+
+  function newGame() { const computer = els.mode.checked; const playerCount = computer ? 4 : Number(els.playerCount.value); dealHand({ computer, playerCount, scores: Array(playerCount).fill(0), targetScore: Number(els.target.value), dealNumber: 1 }); }
+  function requestNewGame() { const progress = state.scores.some(Boolean) || state.dealPoints.some(Boolean) || state.trickCount > 0 || state.passSelections.some(Boolean); if (progress && typeof window.confirm === "function" && !window.confirm("Start a new Hearts match and erase the current scores?")) return false; newGame(); return true; }
+  function nextDeal() { if (!state.complete || state.matchOver) return false; dealHand({ computer: state.computer, playerCount: state.playerCount, scores: state.scores, targetScore: state.targetScore, dealNumber: state.dealNumber + 1 }); return true; }
 
   function passDanger(card) {
     if (card.id === "S12") return 130;
@@ -129,7 +144,7 @@
   function completePass() {
     const outgoing = state.passSelections.map((ids, player) => state.hands[player].filter((card) => ids.includes(card.id)));
     state.hands = state.hands.map((hand, player) => hand.filter((card) => !state.passSelections[player].includes(card.id)));
-    outgoing.forEach((cards, player) => state.hands[(player + 1) % state.playerCount].push(...cards));
+    outgoing.forEach((cards, player) => state.hands[(player + state.passOffset + state.playerCount) % state.playerCount].push(...cards));
     state.phase = "play"; state.active = state.hands.findIndex((hand) => hand.some((card) => card.id === "C2"));
     state.lastActive = -1; state.passSelections = Array(state.playerCount).fill(null);
     render(); scheduleAI();
@@ -205,10 +220,15 @@
   function finishTrick() {
     if (state.trick.length !== state.playerCount || state.complete) return;
     const winner = trickWinner(state.trick); const trickPoints = state.trick.reduce((total, entry) => total + points(entry.card), 0);
-    state.scores[winner.player] += trickPoints; state.playedCards.push(...state.trick.map((entry) => entry.card)); state.trick = []; state.trickCount += 1;
+    state.dealPoints[winner.player] += trickPoints; state.playedCards.push(...state.trick.map((entry) => entry.card)); state.trick = []; state.trickCount += 1;
     if (state.hands.every((hand) => hand.length === 0)) {
-      const shooter = state.scores.findIndex((score) => score === 26);
-      if (shooter >= 0) state.scores = state.scores.map((score, player) => player === shooter ? 0 : score + 26);
+      const shooter = state.dealPoints.findIndex((score) => score === 26);
+      state.scores = state.scores.map((score, player) => score + (shooter >= 0 ? player === shooter ? 0 : 26 : state.dealPoints[player]));
+      state.matchScores = state.scores.slice();
+      if (state.scores.some((score) => score >= state.targetScore)) {
+        const low = Math.min(...state.scores); const leaders = state.scores.map((score, player) => score === low ? player : -1).filter((player) => player >= 0);
+        if (leaders.length === 1) { state.matchOver = true; state.matchWinner = leaders[0]; }
+      }
       state.complete = true;
     } else state.active = winner.player;
     render(); scheduleAI();
@@ -233,24 +253,27 @@
       box.appendChild(row); els.hands.appendChild(box);
     });
     els.trick.textContent = ""; state.trick.forEach((entry) => { const item = document.createElement("div"); item.className = "trick-card"; const owner = document.createElement("strong"); owner.textContent = playerName(entry.player); item.appendChild(owner); item.appendChild(cardButton(entry.card, false, null, false, false)); els.trick.appendChild(item); });
-    els.scorebar.textContent = ""; state.scores.forEach((score, player) => { const item = document.createElement("div"); item.innerHTML = "<span>" + playerName(player) + "</span><strong>" + score + " points</strong>"; els.scorebar.appendChild(item); });
+    els.scorebar.textContent = ""; state.scores.forEach((score, player) => { const item = document.createElement("div"); item.innerHTML = "<span>" + playerName(player) + "</span><strong>" + score + " / " + state.targetScore + "</strong><small>This deal: " + state.dealPoints[player] + "</small>"; els.scorebar.appendChild(item); });
     els.cardPassPanel.hidden = state.phase !== "pass"; els.confirmPass.disabled = state.phase !== "pass" || !canAct() || state.selectedPass.length !== 3;
-    els.status.textContent = state.complete ? "Deal complete." : state.computer && !isHuman(state.active) ? "Computer is thinking…" : canAct() ? state.phase === "pass" ? playerName(state.active) + " chooses three cards to pass." : playerName(state.active) + " to play." : "Pass the device to Player " + (state.active + 1) + ".";
+    els.status.textContent = state.matchOver ? playerName(state.matchWinner) + " wins the match with the lowest score." : state.complete ? "Deal complete." : state.computer && !isHuman(state.active) ? "Computer is thinking…" : canAct() ? state.phase === "pass" ? playerName(state.active) + " chooses three cards to pass." : playerName(state.active) + " to play." : "Pass the device to Player " + (state.active + 1) + ".";
     els.finish.disabled = state.phase !== "play" || state.trick.length !== state.playerCount || state.complete;
     els.passPanel.hidden = state.computer || state.complete || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + "."; els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
-    els.note.textContent = state.complete ? "Start a new deal for another hand." : state.phase === "pass" ? "Four-player Hearts begins by passing three cards to the player on the left." : state.heartsBroken ? "Hearts are broken. Follow suit whenever possible." : "Hearts are not broken yet. The 2♣ leads the first trick; point cards are restricted on that trick.";
+    const passName = state.passOffset === 1 ? "left" : state.passOffset === -1 ? "right" : "across"; els.passHeading.textContent = "Pass three cards " + passName;
+    els.note.textContent = state.complete ? state.matchOver ? "The match limit was reached; the lowest total score wins." : state.scores.some((score) => score >= state.targetScore) ? "The lowest score is tied, so play another deal as a tiebreaker." : "Choose Next Deal to keep the scores and continue." : state.phase === "pass" ? "Four-player Hearts passes three cards " + passName + " this deal." : state.heartsBroken ? "Hearts are broken. Follow suit whenever possible." : "Hearts are not broken yet. The 2♣ leads the first trick; point cards are restricted on that trick.";
+    els.resultPanel.hidden = !state.complete; els.resultTitle.textContent = state.matchOver ? "Match complete" : "Deal complete"; els.resultText.textContent = state.complete ? state.scores.map((score, player) => playerName(player) + ": " + score).join(" · ") + ". Limit: " + state.targetScore + "." : ""; els.nextDeal.hidden = !state.complete || state.matchOver;
     saveState();
   }
 
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
   els.handOrder.addEventListener("change", saveHandOrder);
+  els.target.addEventListener("change", saveTarget);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand); els.confirmPass.addEventListener("click", confirmPass);
-  document.getElementById("new-game").addEventListener("click", newGame); els.finish.addEventListener("click", finishTrick);
+  els.newMatch.addEventListener("click", requestNewGame); els.resultNewMatch.addEventListener("click", requestNewGame); els.nextDeal.addEventListener("click", nextDeal); els.finish.addEventListener("click", finishTrick);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
-  applyDifficulty(); els.handOrder.value = storedHandOrder(); state = loadState();
+  applyDifficulty(); els.handOrder.value = storedHandOrder(); els.target.value = String(storedTarget()); state = loadState();
   if (state) { els.mode.checked = state.computer; els.playerCount.value = String(state.playerCount); els.playerCount.disabled = state.computer; applyDifficulty(); render(); scheduleAI(); } else newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

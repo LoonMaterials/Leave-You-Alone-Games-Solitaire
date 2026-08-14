@@ -9,7 +9,7 @@
     <title>Cribbage</title>
     <link rel="manifest" href="../../manifest.webmanifest">
     <link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=20260804-base-1">
+    <link rel="stylesheet" href="styles.css?v=20260814-cards-1">
   </head>
   <body>
     <main class="game-shell">
@@ -24,8 +24,9 @@
           <label>Difficulty <select id="difficulty"><option value="easy">Easy · relaxed</option><option value="medium" selected>Medium · thinking</option><option value="hard">Hard · strategic</option></select></label>
           <label>Players <select id="player-count"><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label>
           <label>Arrange hand <select id="hand-order"><option value="dealt">Dealt order</option><option value="suit">Group by suit</option><option value="rank">Group by rank</option></select></label>
+          <label>New match target <select id="target-score"><option value="61">61 · short</option><option value="121" selected>121 · standard</option><option value="241">241 · long</option></select></label>
           <a class="button-link" href="../../index.html">Main Menu</a>
-          <button id="new-game" type="button">New Deal</button>
+          <button id="new-match" type="button">New Match</button>
         </div>
       </header>
       <section class="scorebar">
@@ -41,6 +42,7 @@
         </div>
         <div id="hands" class="players"></div>
       </section>
+      <section id="result-panel" class="panel" hidden><h2 id="result-title">Deal complete</h2><p id="result-text"></p><div class="actions"><button id="next-deal" type="button">Next Deal</button><button id="result-new-match" type="button">New Match</button></div></section>
       <section id="pass-panel" class="panel pass-panel" hidden><strong id="pass-title"></strong><button id="show-hand" type="button">Show this player's cards</button></section>
       <section class="panel">
         <div class="panel-heading">
@@ -52,6 +54,6 @@
         <p id="note" class="note">Choose two cards for the crib. The computer will choose its two cards automatically.</p>
       </section>
     </main>
-    <script src="app.js?v=20260813-fixes-1"></script>
+    <script src="app.js?v=20260814-match-1"></script>
   </body>
 </html>

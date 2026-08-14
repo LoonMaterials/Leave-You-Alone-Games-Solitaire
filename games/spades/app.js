@@ -11,9 +11,10 @@
   const DIFFICULTY_KEY = "leave-me-alone-spades-difficulty";
   const SAVE_KEY = "leave-me-alone-spades-save-v1";
   const HAND_ORDER_KEY = "leave-me-alone-spades-hand-order";
+  const TARGET_KEY = "leave-me-alone-spades-target-score";
   const DIFFICULTIES = new Set(["easy", "medium", "hard"]);
   const TEAM_NAMES = ["Team 1 · Players 1 + 3", "Team 2 · Players 2 + 4"];
-  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"), scorebar: document.getElementById("scorebar"), bids: document.getElementById("bids"), finish: document.getElementById("finish-trick"), submit: document.getElementById("submit-bid"), bid: document.getElementById("bid-value"), phase: document.getElementById("phase-title"), note: document.getElementById("note"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), handOrder: document.getElementById("hand-order") };
+  const els = { status: document.getElementById("status"), hands: document.getElementById("hands"), trick: document.getElementById("trick"), scorebar: document.getElementById("scorebar"), bids: document.getElementById("bids"), finish: document.getElementById("finish-trick"), submit: document.getElementById("submit-bid"), bid: document.getElementById("bid-value"), phase: document.getElementById("phase-title"), note: document.getElementById("note"), mode: document.getElementById("computer-mode"), difficulty: document.getElementById("difficulty"), playerCount: document.getElementById("player-count"), passPanel: document.getElementById("pass-panel"), passTitle: document.getElementById("pass-title"), showHand: document.getElementById("show-hand"), handOrder: document.getElementById("hand-order"), target: document.getElementById("target-score"), resultPanel: document.getElementById("result-panel"), resultTitle: document.getElementById("result-title"), resultText: document.getElementById("result-text"), nextDeal: document.getElementById("next-deal"), newMatch: document.getElementById("new-match"), resultNewMatch: document.getElementById("result-new-match") };
   let state;
 
   function storedDifficulty() { try { const value = localStorage.getItem(DIFFICULTY_KEY); return DIFFICULTIES.has(value) ? value : "medium"; } catch { return "medium"; } }
@@ -21,9 +22,11 @@
   function saveDifficulty() { try { localStorage.setItem(DIFFICULTY_KEY, DIFFICULTIES.has(els.difficulty.value) ? els.difficulty.value : "medium"); } catch {} }
   function storedHandOrder() { try { const value = localStorage.getItem(HAND_ORDER_KEY); return ["dealt", "suit", "rank"].includes(value) ? value : "suit"; } catch { return "suit"; } }
   function saveHandOrder() { try { localStorage.setItem(HAND_ORDER_KEY, els.handOrder.value); } catch {} render(); }
+  function storedTarget() { try { const value = localStorage.getItem(TARGET_KEY); return ["250", "500", "750"].includes(value) ? Number(value) : 500; } catch { return 500; } }
+  function saveTarget() { try { localStorage.setItem(TARGET_KEY, els.target.value); } catch {} }
   function orderedEntries(hand) { const entries = hand.map((card, index) => ({ card, index })); if (els.handOrder.value === "dealt") return entries; return entries.sort((a, b) => els.handOrder.value === "rank" ? a.card.rank - b.card.rank || SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) : SUITS.indexOf(a.card.suit) - SUITS.indexOf(b.card.suit) || a.card.rank - b.card.rank); }
   function saveState() { if (state) try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ...state, aiPending: false, finishPending: false })); } catch {} }
-  function loadState() { try { const saved = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.scores)) return null; saved.aiPending = false; saved.finishPending = false; saved.revealedPlayer = saved.computer ? 0 : -1; saved.lastActive = saved.active; return saved; } catch { return null; } }
+  function loadState() { try { const saved = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!saved || !Array.isArray(saved.hands) || saved.hands.length < 2 || !Array.isArray(saved.scores)) return null; saved.aiPending = false; saved.finishPending = false; saved.targetScore = [250, 500, 750].includes(Number(saved.targetScore)) ? Number(saved.targetScore) : 500; saved.dealNumber = Math.max(1, Number(saved.dealNumber) || 1); saved.starter = Math.max(0, Math.min(saved.hands.length - 1, Number(saved.starter) || 0)); saved.matchOver = Boolean(saved.matchOver); saved.matchWinner = Number.isInteger(saved.matchWinner) ? saved.matchWinner : null; saved.revealedPlayer = saved.computer ? 0 : -1; saved.lastActive = saved.active; return saved; } catch { return null; } }
 
   function makeDeck() { const deck = []; SUITS.forEach((suit) => { for (let rank = 2; rank <= 14; rank += 1) deck.push({ id: suit + rank, rank, suit }); }); return deck; }
   function shuffle(cards) { for (let index = cards.length - 1; index > 0; index -= 1) { const swap = Math.floor(Math.random() * (index + 1)); [cards[index], cards[swap]] = [cards[swap], cards[index]]; } return cards; }
@@ -62,26 +65,30 @@
     return Math.max(1, Math.min(13, Math.round(estimate)));
   }
 
-  function newGame() {
+  function dealHand(options) {
     const deck = shuffle(makeDeck());
     const computer = els.mode.checked;
     const playerCount = computer ? 4 : Number(els.playerCount.value);
     const handSize = Math.floor(52 / playerCount);
-    state = { hands: Array.from({ length: playerCount }, () => []), playerCount, active: 0, bids: Array(playerCount).fill(null), trick: [], tricks: Array(playerCount).fill(0), scores: Array(computer ? 2 : playerCount).fill(0), bags: Array(computer ? 2 : playerCount).fill(0), playedCards: [], phase: "bid", spadesBroken: false, complete: false, result: "", computer, finishPending: false, aiPending: false, revealedPlayer: 0, lastActive: 0 };
+    const starter = Number(options.starter) % playerCount;
+    state = { hands: Array.from({ length: playerCount }, () => []), playerCount, active: starter, starter, dealNumber: options.dealNumber, bids: Array(playerCount).fill(null), trick: [], tricks: Array(playerCount).fill(0), scores: options.scores.slice(), bags: options.bags.slice(), targetScore: options.targetScore, matchOver: false, matchWinner: null, playedCards: [], phase: "bid", spadesBroken: false, complete: false, result: "", computer, finishPending: false, aiPending: false, revealedPlayer: computer ? 0 : -1, lastActive: starter };
     for (let round = 0; round < handSize; round += 1) for (let player = 0; player < playerCount; player += 1) state.hands[player].push(deck.pop());
-    state.active = 0;
     els.playerCount.disabled = computer;
     els.difficulty.disabled = !computer;
     render(); scheduleAI();
   }
+
+  function newGame() { const computer = els.mode.checked; const playerCount = computer ? 4 : Number(els.playerCount.value); const teams = computer ? 2 : playerCount; dealHand({ computer, playerCount, scores: Array(teams).fill(0), bags: Array(teams).fill(0), targetScore: Number(els.target.value), dealNumber: 1, starter: 0 }); }
+  function requestNewGame() { const progress = state.scores.some(Boolean) || state.bags.some(Boolean) || state.bids.some((bid) => bid !== null) || state.playedCards.length > 0; if (progress && typeof window.confirm === "function" && !window.confirm("Start a new Spades match and erase the current team scores and bags?")) return false; newGame(); return true; }
+  function nextDeal() { if (!state.complete || state.matchOver) return false; dealHand({ computer: state.computer, playerCount: state.playerCount, scores: state.scores, bags: state.bags, targetScore: state.targetScore, dealNumber: state.dealNumber + 1, starter: (state.starter + 1) % state.playerCount }); return true; }
 
   function submitBid(value) {
     if (state.phase !== "bid" || !isHuman(state.active) || !handVisible(state.active)) return;
     const bid = Math.max(0, Math.min(13, Math.floor(Number(value))));
     if (!Number.isFinite(bid)) return;
     state.bids[state.active] = bid;
-    state.active += 1;
-    if (state.active === state.playerCount) { state.phase = "play"; state.active = 0; }
+    state.active = (state.active + 1) % state.playerCount;
+    if (state.bids.every((item) => item !== null)) { state.phase = "play"; state.active = state.starter; }
     els.bid.value = "0"; render(); scheduleAI();
   }
 
@@ -161,8 +168,8 @@
   }
 
   function submitAIBid(player) {
-    state.bids[player] = bidEstimate(state.hands[player], player); state.active += 1;
-    if (state.active === state.playerCount) { state.phase = "play"; state.active = 0; }
+    state.bids[player] = bidEstimate(state.hands[player], player); state.active = (state.active + 1) % state.playerCount;
+    if (state.bids.every((item) => item !== null)) { state.phase = "play"; state.active = state.starter; }
     render(); scheduleAI();
   }
 
@@ -191,6 +198,8 @@
       while (state.bags[team] >= 10) { state.bags[team] -= 10; next -= 100; }
       return next;
     });
+    const reached = state.scores.map((score, team) => score >= state.targetScore ? team : -1).filter((team) => team >= 0);
+    if (reached.length) { const high = Math.max(...reached.map((team) => state.scores[team])); const leaders = reached.filter((team) => state.scores[team] === high); if (leaders.length === 1) { state.matchOver = true; state.matchWinner = leaders[0]; } }
     state.result = state.scores.map((score, team) => teamName(team) + ": bid " + teamBids[team] + ", took " + teamTricks[team] + ", " + state.bags[team] + " bags, score " + score + (nilChanges[team] ? ", nil " + (nilChanges[team] > 0 ? "+" : "") + nilChanges[team] : "")).join(" · "); state.complete = true; render();
   }
 
@@ -201,26 +210,28 @@
     els.hands.textContent = "";
     state.hands.forEach((hand, player) => { const box = document.createElement("div"); box.className = "player-box"; const heading = document.createElement("h3"); heading.textContent = playerName(player) + " · " + hand.length + " cards" + (state.active === player && !state.complete ? " · active" : "") + (player > 0 && state.computer ? " · computer" : ""); box.appendChild(heading); const row = document.createElement("div"); row.className = "card-row"; const legal = state.phase === "play" && state.active === player ? new Set(legalCards(player).map((card) => card.id)) : new Set(); orderedEntries(hand).forEach(({ card, index }) => row.appendChild(cardButton(card, canAct(player) && state.phase === "play" && legal.has(card.id), () => playCard(player, index), !handVisible(player)))); box.appendChild(row); els.hands.appendChild(box); });
     els.trick.textContent = ""; state.trick.forEach((entry) => { const item = document.createElement("div"); item.className = "trick-card"; const owner = document.createElement("strong"); owner.textContent = playerName(entry.player); item.appendChild(owner); item.appendChild(cardButton(entry.card, false, null, false)); els.trick.appendChild(item); });
-    els.scorebar.textContent = ""; state.scores.forEach((score, team) => { const item = document.createElement("div"); item.innerHTML = "<span>" + teamName(team) + "</span><strong>" + score + " points</strong><small>" + state.bags[team] + " bags" + (state.phase === "bid" ? " · Bidding" : "" ) + "</small>"; els.scorebar.appendChild(item); });
+    els.scorebar.textContent = ""; state.scores.forEach((score, team) => { const item = document.createElement("div"); item.innerHTML = "<span>" + teamName(team) + "</span><strong>" + score + " / " + state.targetScore + "</strong><small>" + state.bags[team] + " bags" + (state.phase === "bid" ? " · Bidding" : "" ) + "</small>"; els.scorebar.appendChild(item); });
     els.bids.textContent = ""; state.bids.forEach((bid, player) => { const item = document.createElement("div"); item.textContent = playerName(player) + ": " + (bid === null ? "—" : bid); els.bids.appendChild(item); });
-    els.phase.textContent = state.phase === "bid" ? "Bidding" : "Trick play"; els.status.textContent = state.complete ? "Deal complete." : state.phase === "bid" ? (state.computer && state.active > 0 ? "Computer is bidding…" : (canAct() ? playerName(state.active) + " to bid." : "Pass the device to Player " + (state.active + 1) + ".")) : (canAct() ? playerName(state.active) + " to play." : "Pass the device to Player " + (state.active + 1) + ".");
+    els.phase.textContent = state.phase === "bid" ? "Bidding" : "Trick play"; els.status.textContent = state.matchOver ? teamName(state.matchWinner) + " wins the match." : state.complete ? "Deal complete." : state.phase === "bid" ? (state.computer && state.active > 0 ? "Computer is bidding…" : (canAct() ? playerName(state.active) + " to bid." : "Pass the device to Player " + (state.active + 1) + ".")) : (canAct() ? playerName(state.active) + " to play." : "Pass the device to Player " + (state.active + 1) + ".");
     els.submit.disabled = state.phase !== "bid" || !canAct(); els.bid.disabled = els.submit.disabled; els.finish.disabled = state.phase !== "play" || state.trick.length !== state.playerCount || state.complete;
     els.passPanel.hidden = state.computer || state.complete || handVisible(state.active);
     els.passTitle.textContent = "Pass the device to Player " + (state.active + 1) + ".";
     els.showHand.textContent = "Player " + (state.active + 1) + ": show cards";
     els.note.textContent = state.complete ? state.result : state.phase === "bid" ? "Bid expected tricks; a zero bid is nil. Computer partners account for suit length, voids, prior bids, and team needs." : (state.spadesBroken ? "Spades are broken. Follow suit whenever possible; the highest spade wins." : "Spades have not been broken. Lead another suit when possible; follow suit whenever possible.");
+    els.resultPanel.hidden = !state.complete; els.resultTitle.textContent = state.matchOver ? "Match complete" : "Deal complete"; els.resultText.textContent = state.complete ? state.result + " · Target: " + state.targetScore + "." : ""; els.nextDeal.hidden = !state.complete || state.matchOver;
     saveState();
   }
 
   els.mode.addEventListener("change", () => { applyDifficulty(); newGame(); });
   els.difficulty.addEventListener("change", saveDifficulty);
   els.handOrder.addEventListener("change", saveHandOrder);
+  els.target.addEventListener("change", saveTarget);
   els.playerCount.addEventListener("change", () => { if (!els.mode.checked) newGame(); });
   els.showHand.addEventListener("click", showActiveHand);
-  document.getElementById("new-game").addEventListener("click", newGame); els.submit.addEventListener("click", () => submitBid(els.bid.value)); els.finish.addEventListener("click", finishTrick);
+  els.newMatch.addEventListener("click", requestNewGame); els.resultNewMatch.addEventListener("click", requestNewGame); els.nextDeal.addEventListener("click", nextDeal); els.submit.addEventListener("click", () => submitBid(els.bid.value)); els.finish.addEventListener("click", finishTrick);
   try { const theme = localStorage.getItem("leave-me-alone-games-theme"); document.body.dataset.theme = THEMES.has(theme) ? theme : "colorblind"; } catch { document.body.dataset.theme = "colorblind"; }
   applyDifficulty();
-  els.handOrder.value = storedHandOrder(); state = loadState();
+  els.handOrder.value = storedHandOrder(); els.target.value = String(storedTarget()); state = loadState();
   if (state) { els.mode.checked = state.computer; els.playerCount.value = String(state.playerCount); els.playerCount.disabled = state.computer; applyDifficulty(); render(); scheduleAI(); } else newGame();
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
 })();

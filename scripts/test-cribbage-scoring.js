@@ -32,11 +32,12 @@ function node(id) {
 }
 node("difficulty").value = "medium";
 node("player-count").value = "2";
+node("target-score").value = "121";
 const scorebar = element();
 
 const instrumented = source.replace(
   /\n\}\)\(\);\s*$/,
-  "\n  globalThis.__cribbageScoring = { scoreHand, scorePeg };\n})();"
+  "\n  globalThis.__cribbageScoring = { scoreHand, scorePeg, awardPoints, nextDeal, getState: () => state };\n})();"
 );
 if (instrumented === source) throw new Error("Could not instrument Cribbage scoring functions.");
 
@@ -56,7 +57,7 @@ const context = {
 context.globalThis = context;
 vm.runInNewContext(instrumented, context, { filename: file });
 
-const { scoreHand, scorePeg } = context.__cribbageScoring;
+const { scoreHand, scorePeg, awardPoints, nextDeal, getState } = context.__cribbageScoring;
 const card = (rank, suit) => ({ id: `${suit}${rank}`, rank, suit });
 
 function expect(actual, expected, label) {
@@ -81,4 +82,14 @@ expect(
   "maximum 29 hand"
 );
 
-console.log("Cribbage scoring checks passed, including Ace-low runs and the 29 hand.");
+const continued = getState();
+continued.scores = [12, 8]; continued.phase = "complete"; continued.dealer = 1; continued.dealNumber = 1;
+expect(nextDeal(), true, "Cribbage Next Deal must continue a completed match");
+expect(getState().scores.join(","), "12,8", "Cribbage Next Deal must preserve scores");
+expect(getState().dealer, 0, "Cribbage Next Deal must rotate the dealer");
+const match = getState(); match.scores = [120, 80]; match.targetScore = 121; match.phase = "peg";
+expect(awardPoints(0, 1), false, "Cribbage target point must stop further scoring");
+expect(match.phase, "game-over", "Cribbage must enter game-over immediately on reaching the target");
+expect(nextDeal(), false, "Cribbage must not deal after the match target is reached");
+
+console.log("Cribbage scoring and match checks passed, including Ace-low runs, the 29 hand, dealer rotation, and target ending.");

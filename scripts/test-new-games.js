@@ -24,8 +24,12 @@ for (const [game, markers] of Object.entries(games)) {
   }
   const html = fs.readFileSync(path.join(folder, "index.html"), "utf8");
   const source = fs.readFileSync(path.join(folder, "app.js"), "utf8");
+  const styles = fs.readFileSync(path.join(folder, "styles.css"), "utf8");
   if (!html.includes('src="app.js')) fail(`${game} does not load its local app.js`);
   if (!html.includes('id="computer-mode"')) fail(`${game} is missing computer-mode control`);
+  for (const cardStyle of ["width:clamp(48px,10vw,72px)", "height:clamp(68px,14vw,100px)", "font-size:clamp(1.1rem,3.2vw,1.5rem)", "font-weight:800"]) {
+    if (!styles.includes(cardStyle)) fail(`${game} is missing the standard readable card style ${cardStyle}`);
+  }
   if (game === "83-maines-card-game") {
     for (const id of ["pass-panel", "show-hand"]) if (!html.includes(`id="${id}"`)) fail(`${game} is missing ${id} privacy control`);
   }
@@ -43,7 +47,7 @@ for (const [game, markers] of Object.entries(games)) {
   if (game === "cribbage") {
     for (const marker of ["cardsPerHand", "discardCount", "scoringHands", "cribTarget: 4"]) if (!source.includes(marker)) fail(`cribbage is missing distinct deal/scoring rule ${marker}`);
   }
-  if (game === "hearts" && !source.includes("const shooter = state.scores.findIndex")) fail("hearts is missing shoot-the-moon scoring");
+  if (game === "hearts" && !source.includes("const shooter = state.dealPoints.findIndex")) fail("hearts is missing shoot-the-moon scoring");
   if (game === "hearts" && !source.includes('card.id !== "D2"')) fail("three-player Hearts must remove the non-scoring 2 of diamonds");
   if (game === "83-maines-card-game") {
     if (!source.includes("return ledSuit.concat(trumps)")) fail("83 must allow either following a plain suit or playing trump");
